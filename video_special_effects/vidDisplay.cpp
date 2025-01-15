@@ -12,6 +12,7 @@
  * Processes the last keypress and applies an effect to the frame.
  * If the last keypress was 'g', the frame is converted to grayscale.
  * If the last keypress was 'h', the frame is converted to an alternative grayscale.
+ * If the last keypress was 'p', a sepia filter is applied.
  * Else, the frame is left unmodified.
  */
 cv::Mat processLastKeypress(cv::Mat& frame, char lastKeypress){\
@@ -22,6 +23,16 @@ cv::Mat processLastKeypress(cv::Mat& frame, char lastKeypress){\
             std::cout << "Error applying alternative grayscale" << std::endl;
             exit(-1);
         }   
+    } else if (lastKeypress == 'p'){
+        if(sepia(frame, frame) != 0){
+            std::cout << "Error applying sepia filter" << std::endl;
+            exit(-1);
+        }
+    } else if (lastKeypress == 'b'){
+        if (blur5x5_2(frame, frame) != 0){
+            std::cout << "Error applying blur5x5_1" << std::endl;
+            exit(-1);
+        }
     }
     return frame;
 }
