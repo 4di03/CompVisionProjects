@@ -14,27 +14,66 @@
  * If the last keypress was 'h', the frame is converted to an alternative grayscale.
  * If the last keypress was 'p', a sepia filter is applied.
  * Else, the frame is left unmodified.
+ * 
+ * The result is placed in dst
  */
-cv::Mat processLastKeypress(cv::Mat& frame, char lastKeypress){\
+void processLastKeypress(cv::Mat& frame, cv::Mat& dst, char lastKeypress){\
     if(lastKeypress == 'g'){
-        cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
+        cv::cvtColor(frame, dst, cv::COLOR_BGR2GRAY);
     } else if (lastKeypress == 'h') {
-        if (alternativeGrayscale(frame, frame) != 0){
+        if (alternativeGrayscale(frame, dst) != 0){
             std::cout << "Error applying alternative grayscale" << std::endl;
             exit(-1);
         }   
     } else if (lastKeypress == 'p'){
-        if(sepia(frame, frame) != 0){
+        if(sepia(frame, dst) != 0){
             std::cout << "Error applying sepia filter" << std::endl;
             exit(-1);
         }
     } else if (lastKeypress == 'b'){
-        if (blur5x5_2(frame, frame) != 0){
+        if (blur5x5_2(frame, dst) != 0){
             std::cout << "Error applying blur5x5_1" << std::endl;
             exit(-1);
         }
+    } else if (lastKeypress == 'x'){
+        if (sobelX3x3(frame, dst) != 0){
+            std::cout << "Error applying sobelX3x3" << std::endl;
+            exit(-1);
+        }
+    }else if (lastKeypress == 'y'){
+        if (sobelY3x3(frame, dst) != 0){
+            std::cout << "Error applying sobelX3x3" << std::endl;
+            exit(-1);
+        }
+    } else{
+        frame.copyTo(dst);
     }
-    return frame;
+}
+
+/**
+ * Converts images that are not in [0,255] range to [0,255] range.
+ */
+void prepareFrameForDisplay(cv::Mat& src, cv::Mat& dst){
+    printf("Source type: %d\n", src.type());
+    printf("Destination type: %d\n", dst.type());
+    printf("CV_16SC3: %d\n", CV_16SC3);
+    printf("CV_8UC3: %d\n", CV_8UC3);
+
+    double minVal;
+    minMaxLoc(src, &minVal, nullptr);
+
+    if (src.type() == CV_16SC3){
+        if (minVal < 0){
+            // if the image has negative values then we appliy pixel * 0.5 + 127.5 to convert the minimum value to 0, else if only the max is greater, we simply scale it down.
+
+            cv::convertScaleAbs(src, dst, 0.5,  127.5); 
+        } else {
+            // since all values are positive, we can simply convert to 8 bit
+            src.convertTo(dst, CV_8UC3);
+        }
+    } else {
+       src.copyTo(dst);
+    }
 }
 
 /**
@@ -53,17 +92,23 @@ int main(){
     }
 
     cv::namedWindow("Video", 1); // identifies a window
-    cv::Mat frame;
+    cv::Mat rawFrame;
     char lastKeypress;
+    cv::Mat resultantFrame;
     while(true){
-            *capdev >> frame; // get a new frame from the camera, treat as a stream
-            if( frame.empty() ) {
+            *capdev >> rawFrame; // get a new frame from the camera, treat as a stream
+            if( rawFrame.empty() ) {
                 printf("frame is empty\n");
                 break;
             }                
 
-            frame = processLastKeypress(frame, lastKeypress);
-            cv::imshow("Video", frame);
+            processLastKeypress(rawFrame,resultantFrame, lastKeypress);
+
+
+            cv::Mat displayFrame;
+            // Convert images potentially in range [-255, 255] to [0, 255]
+            prepareFrameForDisplay(resultantFrame, displayFrame);
+            cv::imshow("Video", displayFrame);
 
             // see if there is a waiting keystroke
             char key = cv::waitKey(1);
@@ -71,7 +116,7 @@ int main(){
                 break;
             }else if(key == 's'){
                 // saves the frame as a screenshot
-                cv::imwrite(SCREENSHOT_SAVE_LOC, frame);
+                cv::imwrite(SCREENSHOT_SAVE_LOC, displayFrame);
             } else if (key != -1){ // can compare due to implicit conversion to int
                 lastKeypress = key;
             }

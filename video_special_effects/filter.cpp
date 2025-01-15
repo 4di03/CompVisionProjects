@@ -168,6 +168,70 @@ int blur5x5_1( cv::Mat &src, cv::Mat &dst ){
 
 }
 
+/**
+ * Applies a separable filter to the image.
+ * 
+ * if K is a seperable filter, then K = V * H where H and V are 1D filters.
+ * This function then does V*(H*src)  which is equivalent to K*src by the associative and commutative properties of convolution.
+ * 
+ */
+int applySeparableFilter(cv::Mat& src, cv::Mat& dst, std::vector<float>& verticalFilter, std::vector<float>& horizontalFilter){
+    if (horizontalFilter.size() %2 != 1 || verticalFilter.size() %2 != 1){
+        // make sure the filters are odd in dimensions so that we can center them
+        return -1;
+    }
+    if(src.empty()){
+        return -1;
+    }
+
+    // copy src so that we dont have to read and write to the same image
+    cv::Mat srcCopy;
+
+    src.convertTo(srcCopy, CV_32FC3); // convert to float so that we can apply math with proper precision
+    // make dst a copy of the data in source so that border pixels are not modified
+    src.copyTo(dst);
+    dst.convertTo(dst, CV_16SC3); // convert to 16 bit signed int so that we can store the results of the kernel operation
+
+    
+    cv::Mat tmp = cv::Mat::zeros(src.size(), CV_32FC3);
+
+    int horizontalCutoff = horizontalFilter.size()/2;
+
+    //std::cout << "Kernel vector: " << kernelVector[0] << " " << kernelVector[1] << " " << kernelVector[2] << " " << kernelVector[3] << " " << kernelVector[4] << std::endl;
+    // horizontal filter pass
+    for(int i = 0; i < srcCopy.rows; i++){
+        cv::Vec3f* origRow = srcCopy.ptr<cv::Vec3f>(i);
+        cv::Vec3f* row = tmp.ptr<cv::Vec3f>(i);
+        for(int j = horizontalCutoff; j < srcCopy.cols-horizontalCutoff; j++){
+            // modify the row in srcCopy as we need to store these results for the vertical pass
+            for(int k = -horizontalCutoff; k <= horizontalCutoff; k++){
+                row[j] += origRow[j+k] * horizontalFilter[horizontalCutoff + k];
+            }
+        }
+    }
+
+    int verticalCutoff = verticalFilter.size()/2;
+
+
+    // vertical filter pass
+    for (int j = horizontalCutoff; j < tmp.cols - horizontalCutoff; j++){
+        for (int i = verticalCutoff; i < tmp.rows - verticalCutoff; i++){
+
+            cv::Vec3f sum = cv::Vec3f(0, 0, 0); 
+
+            for(int k = -verticalCutoff; k <= verticalCutoff; k++){
+                sum += tmp.at<cv::Vec3f>(i+k, j) * verticalFilter[verticalCutoff + k];
+            }
+
+            // modify dst directly
+            dst.at<cv::Vec3s>(i, j) = sum;
+
+        }
+    }
+
+    return 0;
+
+}
 
 /**
  * Applies a 5x5 blur using the valid convolution algorithm (no padding).
@@ -186,51 +250,27 @@ int blur5x5_1( cv::Mat &src, cv::Mat &dst ){
  * @returns 0 if the operation was successful, -1 otherwise.
  */
 int blur5x5_2( cv::Mat &src, cv::Mat &dst ){
-    if(src.empty()){
-        return -1;
-    }
+    std::vector<float> kernelVector = {0.1, 0.2, 0.4, 0.2, 0.1};
+    return applySeparableFilter(src, dst, kernelVector, kernelVector);
+}
 
-    // copy src so that we dont have to read and write to the same image
-    cv::Mat srcCopy;
+/**
+ * Appies a 3x3 sobel X filter to the image to highlight vertical edges.
+ * 
+ */
+int sobelX3x3( cv::Mat &src, cv::Mat &dst ){
+    std::vector<float> vert = {0.25,0.5,0.25};
+    std::vector<float> horiz = {0.5,0,-0.5};
+    return applySeparableFilter(src, dst, vert,horiz);
+}
 
-    src.convertTo(srcCopy, CV_32FC3); // convert to float so that we can apply math with proper precision
-    // make dst a copy of the data in source so that border pixels are not modified
-    src.copyTo(dst);
-    
+/**
+ * Appies a 3x3 sobel Y filter to the image to highlight horizontal edges.
+ * 
+ */
+int sobelY3x3( cv::Mat &src, cv::Mat &dst ){
+    std::vector<float> vert = {0.5,0,-0.5};
+    std::vector<float> horiz = {0.25,0.5,0.25};
 
-    std::vector<float> kernelVector= {0.1,0.2,0.4,0.2,0.1};
-
-    //std::cout << "Kernel vector: " << kernelVector[0] << " " << kernelVector[1] << " " << kernelVector[2] << " " << kernelVector[3] << " " << kernelVector[4] << std::endl;
-    // horizontal filter pass
-    for(int i = 0; i < srcCopy.rows; i++){
-        cv::Vec3f* row = srcCopy.ptr<cv::Vec3f>(i);
-        for(int j = 2; j < srcCopy.cols-2; j++){
-            // modify the row in srcCopy as we need to store these results for the vertical pass
-            row[j] = row[j-2] * kernelVector[0] + 
-                row[j-1] * kernelVector[1] + 
-                row[j] * kernelVector[2] + 
-                row[j+1] * kernelVector[3] + 
-                row[j+2] * kernelVector[4];
-        }
-    }
-
-    // vertical filter pass
-    for (int j = 2; j < srcCopy.cols - 2; j++){
-        for (int i = 2; i < srcCopy.rows - 2; i++){
-            cv::Vec3f sum = srcCopy.at<cv::Vec3f>(i-2, j) * kernelVector[0] + 
-                                            srcCopy.at<cv::Vec3f>(i-1, j) * kernelVector[1] + 
-                                            srcCopy.at<cv::Vec3f>(i, j) * kernelVector[2] + 
-                                            srcCopy.at<cv::Vec3f>(i+1, j) * kernelVector[3] + 
-                                            srcCopy.at<cv::Vec3f>(i+2, j) * kernelVector[4];
-
-
-            // modify dst directly
-            dst.at<cv::Vec3b>(i, j) = sum;
-
-        }
-    }
-
-
-    return 0;
-
+    return applySeparableFilter(src, dst, vert,horiz);
 }
