@@ -2,6 +2,8 @@
  * Adithya Palle
  * Jan 24 2025
  * CS 5330 - Project 1 : Filter implementation
+ * 
+ * This file contains the implementations of the functions that are used to apply filters to the image.
  */
 
 #include "filter.h"
@@ -273,4 +275,84 @@ int sobelY3x3( cv::Mat &src, cv::Mat &dst ){
     std::vector<float> horiz = {0.25,0.5,0.25};
 
     return applySeparableFilter(src, dst, vert,horiz);
+}
+
+
+/**
+ * Computes the gradient magnitude image from two 3 channel gradient images.
+ * The output is remains a three channel image.
+ * 
+ * @param sx The gradient image in the x direction (3 - channel, signed short).
+ * @param sy The gradient image in the y direction (3 - channel, signed short).
+ * @param dst The destination image (3 - channel, unsigned int).
+ * @returns 0 if the operation was successful, -1 otherwise.
+ */
+int magnitude( cv::Mat &sx, cv::Mat &sy, cv::Mat &dst ){
+    if (sx.empty() || sy.empty() || sx.size() != sy.size()){
+        return -1;
+    }
+
+    // initalize dst as a uchar 3 channel image
+    dst.create(sx.size(), CV_8UC3);
+
+    for (int i = 0; i < sx.rows; i++){
+        cv::Vec3s* rowX = sx.ptr<cv::Vec3s>(i);
+        cv::Vec3s* rowY = sy.ptr<cv::Vec3s>(i);
+        cv::Vec3b* rowDst = dst.ptr<cv::Vec3b>(i);
+
+        for (int j = 0;  j < sx.cols; j++){
+            cv::Vec3s pixelX = rowX[j];
+            cv::Vec3s pixelY = rowY[j];
+
+            // compute the magnitude of the gradient for all 3 channels
+            cv::Vec3b magnitude = cv::Vec3s(sqrt(pixelX[0]*pixelX[0] + pixelY[0]*pixelY[0]),
+                                            sqrt(pixelX[1]*pixelX[1] + pixelY[1]*pixelY[1]),
+                                            sqrt(pixelX[2]*pixelX[2] + pixelY[2]*pixelY[2]));
+
+            rowDst[j] = magnitude;
+        }
+
+
+    }
+
+    return 0;
+
+}
+
+/**
+ * Blurs an image and then quantizes the colors to a specified number of levels.
+ * 
+ * @param src The source image (3-channel, uchar).
+ * @param dst The destination image (3-channel, uchar).
+ * @param levels The number of quantization levels.
+ */
+int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels ){
+
+    if (blur5x5_2(src, dst) != 0){
+        std::cout << "Error applying blur5x5_1" << std::endl;
+        return -1;
+    }
+
+    // get the number of values in each bucket
+    float bucketSize = 256/levels;
+
+    for (int i = 0; i < dst.rows; i++){
+        cv::Vec3b* row = dst.ptr<cv::Vec3b>(i);
+        for (int j = 0; j < dst.cols; j++){
+            cv::Vec3b pixel = row[j];
+
+            // determine which bucket each value for this pixel belongs to
+            cv::Vec3b bucketIndices = pixel/bucketSize;
+        
+            // get the quantized values by multiplying the index with teh bucket size
+            cv::Vec3b quantizedPixel = bucketIndices * bucketSize;
+
+            row[j] = quantizedPixel;
+
+
+        }
+    }
+
+    return 0;
+
 }

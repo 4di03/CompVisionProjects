@@ -2,6 +2,8 @@
  * Adithya Palle
  * Jan 24 2025
  * CS 5330 - Project 1, Tasks 2 - 4 : Video Display
+ * 
+ * This file contains the implementation of a program that reads a video stream from a camera and displays it on the screen, allowing the user to apply filters to the video stream.
  */
 #define SCREENSHOT_SAVE_LOC "screenshot.jpg" // location to save the screenshot
 #include <iostream>
@@ -10,54 +12,90 @@
 
 /**
  * Processes the last keypress and applies an effect to the frame.
- * If the last keypress was 'g', the frame is converted to grayscale.
- * If the last keypress was 'h', the frame is converted to an alternative grayscale.
- * If the last keypress was 'p', a sepia filter is applied.
- * Else, the frame is left unmodified.
+ * If the keypress is unknown, the frame is left unmodified.
  * 
  * The result is placed in dst
  */
-void processLastKeypress(cv::Mat& frame, cv::Mat& dst, char lastKeypress){\
-    if(lastKeypress == 'g'){
+void processLastKeypress(cv::Mat& frame, cv::Mat& dst, char lastKeypress){
+switch (lastKeypress) {
+    case 'g':
         cv::cvtColor(frame, dst, cv::COLOR_BGR2GRAY);
-    } else if (lastKeypress == 'h') {
-        if (alternativeGrayscale(frame, dst) != 0){
+        break;
+
+    case 'h':
+        if (alternativeGrayscale(frame, dst) != 0) {
             std::cout << "Error applying alternative grayscale" << std::endl;
             exit(-1);
-        }   
-    } else if (lastKeypress == 'p'){
-        if(sepia(frame, dst) != 0){
+        }
+        break;
+
+    case 'p':
+        if (sepia(frame, dst) != 0) {
             std::cout << "Error applying sepia filter" << std::endl;
             exit(-1);
         }
-    } else if (lastKeypress == 'b'){
-        if (blur5x5_2(frame, dst) != 0){
+        break;
+
+    case 'b':
+        if (blur5x5_2(frame, dst) != 0) {
             std::cout << "Error applying blur5x5_1" << std::endl;
             exit(-1);
         }
-    } else if (lastKeypress == 'x'){
-        if (sobelX3x3(frame, dst) != 0){
+        break;
+
+    case 'x':
+        if (sobelX3x3(frame, dst) != 0) {
             std::cout << "Error applying sobelX3x3" << std::endl;
             exit(-1);
         }
-    }else if (lastKeypress == 'y'){
-        if (sobelY3x3(frame, dst) != 0){
-            std::cout << "Error applying sobelX3x3" << std::endl;
+        break;
+
+    case 'y':
+        if (sobelY3x3(frame, dst) != 0) {
+            std::cout << "Error applying sobelY3x3" << std::endl;
             exit(-1);
         }
-    } else{
-        frame.copyTo(dst);
+        break;
+
+    case 'm': {
+        cv::Mat sx, sy;
+        if (sobelX3x3(frame, sx) != 0) {
+            std::cout << "Error getting sobelX3x3" << std::endl;
+            exit(-1);
+        }
+        if (sobelY3x3(frame, sy) != 0) {
+            std::cout << "Error getting sobelY3x3" << std::endl;
+            exit(-1);
+        }
+        if (magnitude(sx, sy, dst) != 0) {
+            std::cout << "Error getting gradient magnitude" << std::endl;
+            exit(-1);
+        }
+        break;
     }
+
+    case 'l':{
+        if (blurQuantize(frame, dst, 10) != 0) {
+            std::cout << "Error applying blurQuantize" << std::endl;
+            exit(-1);
+        }
+        break;
+    }
+
+    default:
+        frame.copyTo(dst);
+        break;
+}
 }
 
 /**
  * Converts images that are not in [0,255] range to [0,255] range.
  */
 void prepareFrameForDisplay(cv::Mat& src, cv::Mat& dst){
-    printf("Source type: %d\n", src.type());
-    printf("Destination type: %d\n", dst.type());
-    printf("CV_16SC3: %d\n", CV_16SC3);
-    printf("CV_8UC3: %d\n", CV_8UC3);
+    // printf("Source type: %d\n", src.type());
+    // printf("Destination type: %d\n", dst.type());
+    // printf("CV_16SC3: %d\n", CV_16SC3);
+    // printf("CV_8UC3: %d\n", CV_8UC3);
 
     double minVal;
     minMaxLoc(src, &minVal, nullptr);
