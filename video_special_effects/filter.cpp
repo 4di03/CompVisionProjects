@@ -108,6 +108,36 @@ class NaiveBlur : public Filter{
 
 };
 
+class AdjustBrightness: public Filter{
+    private:
+        int delta;
+    public:
+
+        AdjustBrightness(int delta){
+            this->delta = delta;
+        }
+        /**
+         * Increases the brightness of the RGB image by adding delta to each channel.
+         */
+        void modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
+            cv::Vec3b pixel = src.at<cv::Vec3b>(i, j);
+            int originalRed = pixel[2];
+            int originalGreen = pixel[1];
+            int originalBlue = pixel[0];
+            int newBlue = std::min(255, std::max(0, originalBlue + delta));
+            int newGreen =  std::min(255, std::max(0, originalGreen + delta));
+            int newRed = std::min(255, std::max(0, originalRed + delta));
+            dst.at<cv::Vec3b>(i, j) = cv::Vec3b(newBlue, newGreen, newRed);
+
+        }
+
+        // because the output is a 3 channel image
+        int getDatatype(){
+            return CV_8UC3;
+        }
+};
+
+
 
 int applyFilter(const cv::Mat& src, cv::Mat& dst, Filter* filter){
     if(src.empty()){
@@ -468,4 +498,16 @@ int applyToForeground(cv::Mat &src, cv::Mat &dst, int threshold, int (*processin
         }
     }
 
+}
+
+/**
+ * Increases the brightness of the RGB image by adding delta to each channel.
+ * If the value exceeds 255, it is clamped to 255.
+ * @param src The source image.
+ * @param dst The destination image.
+ * @param delta The amount to add to each channel.
+ * @returns 0 if the operation was successful, -1 otherwise.
+ */
+int adjustBrightness(cv::Mat& src, cv::Mat& dst, int delta){
+    return applyFilter(src, dst, new AdjustBrightness(delta));
 }

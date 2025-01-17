@@ -33,3 +33,6 @@ int applyToForeground(cv::Mat &src, cv::Mat &dst, int threshold, int (*processin
 
 // converts an image that may not be in the range [0, 255] to that range
 void prepareFrameForDisplay(cv::Mat& src, cv::Mat& dst);
+
+// increases the brightness of the RGB image by adding delta to each channel
+int adjustBrightness(cv::Mat& src, cv::Mat& dst, int delta);
