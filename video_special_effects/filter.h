@@ -14,7 +14,7 @@ int sepia(const cv::Mat& src, cv::Mat& dst);
 
 int blur5x5_1( cv::Mat &src, cv::Mat &dst );
 
-int blur5x5_2( cv::Mat &src, cv::Mat &dst );
+int blur5x5_2( cv::Mat &src, cv::Mat&dst );
 
 int sobelX3x3( cv::Mat &src, cv::Mat &dst );
 int sobelY3x3( cv::Mat &src, cv::Mat &dst );
@@ -22,3 +22,14 @@ int sobelY3x3( cv::Mat &src, cv::Mat &dst );
 int magnitude( cv::Mat &sx, cv::Mat &sy, cv::Mat &dst );
 
 int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels );
+
+// produces a depth image from the input image
+int depth(cv::Mat &src, cv::Mat &dst);
+
+
+// uses depth information to apply an effect to only the foreground of an immage
+int applyToForeground(cv::Mat &src, cv::Mat &dst, int threshold, int (*processingFunction)(const cv::Mat&, cv::Mat&));
+
+
+// converts an image that may not be in the range [0, 255] to that range
+void prepareFrameForDisplay(cv::Mat& src, cv::Mat& dst);

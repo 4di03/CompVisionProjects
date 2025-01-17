@@ -9,16 +9,18 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include "filter.h"
+#include "faceDetect/faceDetect.h"
 
 /**
  * Processes the last keypress and applies an effect to the frame.
  * If the keypress is unknown, the frame is left unmodified.
  * 
- * The result is placed in dst
+ * The result is placed in dst, a 3 channel uchar image.
  */
 void processLastKeypress(cv::Mat& frame, cv::Mat& dst, char lastKeypress){
 switch (lastKeypress) {
     case 'g':
+
         cv::cvtColor(frame, dst, cv::COLOR_BGR2GRAY);
         break;
 
@@ -43,19 +45,29 @@ switch (lastKeypress) {
         }
         break;
 
-    case 'x':
-        if (sobelX3x3(frame, dst) != 0) {
+    case 'x':{
+        cv::Mat sobelOut;
+
+        if (sobelX3x3(frame, sobelOut) != 0) {
             std::cout << "Error applying sobelX3x3" << std::endl;
             exit(-1);
         }
-        break;
+        prepareFrameForDisplay(sobelOut, dst);
 
-    case 'y':
-        if (sobelY3x3(frame, dst) != 0) {
+        break;
+    }
+
+    case 'y':{
+        cv::Mat sobelOut;
+        
+        if (sobelY3x3(frame, sobelOut) != 0) {
             std::cout << "Error applying sobelY3x3" << std::endl;
             exit(-1);
         }
+        prepareFrameForDisplay(sobelOut,  dst);
+
         break;
+    }
 
     case 'm': {
         cv::Mat sx, sy;
@@ -81,38 +93,52 @@ switch (lastKeypress) {
         }
         break;
     }
+    case 'f':{
+        // detects and draws faces on the frame
+        std::vector<cv::Rect> faces;
+        cv::Mat grey;
+        cv::cvtColor(frame, grey, cv::COLOR_BGR2GRAY);
+
+        if (detectFaces(grey, faces) != 0){
+            std::cout << "Error detecting faces" << std::endl;
+            exit(-1);
+        }
+        // copy the frame to dst so that we can draw the boxes on dst
+        frame.copyTo(dst);
+        if (drawBoxes(dst, faces) != 0){
+            std::cout << "Error drawing boxes" << std::endl;
+            exit(-1);
+        }
+        break;
+
+
+    }
+    case 'd':{
+        if (depth(frame, dst) != 0){
+            std::cout << "Error applying depth" << std::endl;
+            exit(-1);
+        }
+
+        break;
+    }
+    case 'z':{
+        // applies sepia to only the foreground of the image
+        if (applyToForeground(frame, dst, 128, sepia) != 0){
+            std::cout << "Error applying blurBackground" << std::endl;
+            exit(-1);
+        }
+        break;
+    }
 
     default:
         frame.copyTo(dst);
         break;
 }
+
+
 }
 
-/**
- * Converts images that are not in [0,255] range to [0,255] range.
- */
-void prepareFrameForDisplay(cv::Mat& src, cv::Mat& dst){
-    // printf("Source type: %d\n", src.type());
-    // printf("Destination type: %d\n", dst.type());
-    // printf("CV_16SC3: %d\n", CV_16SC3);
-    // printf("CV_8UC3: %d\n", CV_8UC3);
 
-    double minVal;
-    minMaxLoc(src, &minVal, nullptr);
-
-    if (src.type() == CV_16SC3){
-        if (minVal < 0){
-            // if the image has negative values then we appliy pixel * 0.5 + 127.5 to convert the minimum value to 0, else if only the max is greater, we simply scale it down.
-
-            cv::convertScaleAbs(src, dst, 0.5,  127.5); 
-        } else {
-            // since all values are positive, we can simply convert to 8 bit
-            src.convertTo(dst, CV_8UC3);
-        }
-    } else {
-       src.copyTo(dst);
-    }
-}
 
 /**
  * Displays a video stream.
@@ -139,13 +165,11 @@ int main(){
                 printf("frame is empty\n");
                 break;
             }                
-
-            processLastKeypress(rawFrame,resultantFrame, lastKeypress);
-
-
             cv::Mat displayFrame;
-            // Convert images potentially in range [-255, 255] to [0, 255]
-            prepareFrameForDisplay(resultantFrame, displayFrame);
+
+            processLastKeypress(rawFrame,displayFrame, lastKeypress);
+
+
             cv::imshow("Video", displayFrame);
 
             // see if there is a waiting keystroke

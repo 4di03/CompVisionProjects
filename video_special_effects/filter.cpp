@@ -9,6 +9,8 @@
 #include "filter.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include "depthAnything/da2-code/DA2Network.hpp"
+
 
 class Filter{
     public:
@@ -230,11 +232,34 @@ int applySeparableFilter(cv::Mat& src, cv::Mat& dst, std::vector<float>& vertica
 
         }
     }
-
     return 0;
 
 }
+/**
+ * Converts images that are not in [0,255] range to [0,255] range.
+ */
+void prepareFrameForDisplay(cv::Mat& src, cv::Mat& dst){
+    // printf("Source type: %d\n", src.type());
+    // printf("Destination type: %d\n", dst.type());
+    // printf("CV_16SC3: %d\n", CV_16SC3);
+    // printf("CV_8UC3: %d\n", CV_8UC3);
 
+    double minVal;
+    minMaxLoc(src, &minVal, nullptr);
+
+    if (src.type() == CV_16SC3){
+        if (minVal < 0){
+            // if the image has negative values then we appliy pixel * 0.5 + 127.5 to convert the minimum value to 0, else if only the max is greater, we simply scale it down.
+
+            cv::convertScaleAbs(src, dst, 0.5,  127.5); 
+        } else {
+            // since all values are positive, we can simply convert to 8 bit
+            src.convertTo(dst, CV_8UC3);
+        }
+    } else {
+       src.copyTo(dst);
+    }
+}
 /**
  * Applies a 5x5 blur using the valid convolution algorithm (no padding).
  * Applies optimizations to improve performance
@@ -248,12 +273,16 @@ int applySeparableFilter(cv::Mat& src, cv::Mat& dst, std::vector<float>& vertica
  *  1 2  4 2 1
  * 
  * @param src The source image.
- * @param dst The destination image.
+ * @param dst The destination image (3-channel uchar).
  * @returns 0 if the operation was successful, -1 otherwise.
  */
-int blur5x5_2( cv::Mat &src, cv::Mat &dst ){
+int blur5x5_2( cv::Mat &src, cv::Mat&dst ){
+    cv::Mat blurOut;
     std::vector<float> kernelVector = {0.1, 0.2, 0.4, 0.2, 0.1};
-    return applySeparableFilter(src, dst, kernelVector, kernelVector);
+    applySeparableFilter(src, blurOut, kernelVector, kernelVector);
+
+    prepareFrameForDisplay(blurOut, dst);
+    return 0;
 }
 
 /**
@@ -327,7 +356,7 @@ int magnitude( cv::Mat &sx, cv::Mat &sy, cv::Mat &dst ){
  * @param levels The number of quantization levels.
  */
 int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels ){
-
+    
     if (blur5x5_2(src, dst) != 0){
         std::cout << "Error applying blur5x5_1" << std::endl;
         return -1;
@@ -354,5 +383,89 @@ int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels ){
     }
 
     return 0;
+
+}
+
+/**
+ * Gets depth values in range [0,255] from the input image. 255 represents the farthest object and 0 represents the closest object.
+ * 
+ * @param src The source image.
+ * @param dst The destination single channel mat.
+ * 
+ * @returns 0 if the operation was successful, -1 otherwise.
+ */
+int getDepthValues(cv::Mat&src, cv::Mat &dst){
+    // initalize the network once
+    static   DA2Network da_net( "depthAnything/da2-code/model_fp16.onnx" );
+    // scale according to the smaller dimension
+    float scale_factor = 256.0 / (src.rows > src.cols ? src.cols : src.rows);
+    scale_factor = scale_factor > 1.0 ? 1.0 : scale_factor;
+    da_net.set_input( src, scale_factor );
+    da_net.run_network( dst, src.size() );
+
+    return 0;
+}
+
+/**
+ * Produces a depth image from the input image, with inferno colormap applied.
+ * 
+ * @param src The source image.
+ * @param dst The destination image, mroe orange colors represent closer objects.
+ * 
+ * @returns 0 if the operation was successful, -1 otherwise.
+ */
+int depth(cv::Mat &src, cv::Mat &dst){
+    if(getDepthValues(src, dst) != 0){
+        std::cout << "Error getting depth values" << std::endl;
+        return -1;
+    }
+
+    // dst is now a 0-255 grayscale image, apply the inferno colormap
+
+    cv::applyColorMap(dst, dst, cv::COLORMAP_INFERNO );
+
+    return 0;
+
+
+}
+
+/**
+ * Uses depth information to blur the background of an image.
+ * The blur is only applied to pixels that have a depth value below a specific threshold.
+ * @param src The source image.
+ * @param dst The destination image.
+ * @param threshold The depth value threshold.
+ * @param processingFunction The function to apply to the image. It must produce a 3 channel uchar image for this to work.
+ * 
+ * @returns 0 if the operation was successful, -1 otherwise.
+ */
+int applyToForeground(cv::Mat &src, cv::Mat &dst, int threshold, int (*processingFunction)(const cv::Mat&, cv::Mat&)){
+
+
+    // apply the thing to the image
+    if (processingFunction(src, dst) != 0){
+        std::cout << "Error applying processing function" << std::endl;
+        return -1;
+    }
+
+
+    cv::Mat depthImage;
+    if (getDepthValues(src, depthImage) != 0){
+        std::cout << "Error applying depth" << std::endl;
+        return -1;
+    }
+
+    // iterate thorugh the image and restore the original pixel if the depth value is < threshold (meaning it is closer)
+    for (int i=0;i < dst.rows;i++){
+        cv::Vec3b* srcRow = src.ptr<cv::Vec3b>(i);
+        cv::Vec3b* dstRow = dst.ptr<cv::Vec3b>(i);
+        uchar* depthRow = depthImage.ptr<uchar>(i);
+        for (int j = 0; j < dst.cols; j++){
+            if (depthRow[j] < threshold){
+                dstRow[j] = srcRow[j];
+
+            }
+        }
+    }
 
 }
