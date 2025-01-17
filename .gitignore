@@ -4,3 +4,4 @@ packages/
 *.jpg
 *.png
 .DS_Store
+video_special_effects/depthAnything/onnxruntime-osx-x86_64-1.20.1/
