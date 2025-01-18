@@ -31,7 +31,7 @@ int depth(cv::Mat &src, cv::Mat &dst);
 int applyToForeground(cv::Mat &src, cv::Mat &dst, int threshold, int (*processingFunction)(const cv::Mat&, cv::Mat&));
 
 
-// converts an image that may not be in the range [0, 255] to that range
+// converts an image that may not be in the range [0, 255] to that range, also converts the image to 3 channel uchar
 void prepareFrameForDisplay(cv::Mat& src, cv::Mat& dst);
 
 // increases the brightness of the RGB image by adding delta to each channel

@@ -163,16 +163,19 @@ int main(){
     while(true){
             *capdev >> rawFrame; // get a new frame from the camera, treat as a stream
 
-            std::cout << "rawFrame type: " << rawFrame.type() << std::endl;
+            
             if( rawFrame.empty() ) {
                 printf("frame is empty\n");
                 break;
             }                
+
+            //resize 
+            cv::resize(rawFrame, rawFrame, cv::Size(640, 480));
+
             cv::Mat displayFrame;
 
             processLastKeypress(rawFrame,displayFrame, lastKeypress);
 
-            cv::imshow("L173", displayFrame);
             // adjust the brightness of the frame
             adjustBrightness(displayFrame, displayFrame, deltaBrightness);
 
