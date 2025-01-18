@@ -10,6 +10,7 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include "depthAnything/da2-code/DA2Network.hpp"
+#include <cmath>
 
 template <typename PixelType>
 class Filter{
@@ -17,7 +18,7 @@ class Filter{
         /**
          * Strategy function for modifying a pixel in the image.
          */
-        virtual PixelType modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst) = 0;
+        virtual PixelType modifyPixel(int i, int j, const cv::Mat& src) = 0;
 
         /**
          * Returns the datatype of the destination image.
@@ -30,7 +31,7 @@ class AlternativeGrayscale : public Filter<uchar>{
         /**
          * Applies a custom grayscale filter by summing the RGB values and then modding by 256.
          */
-        uchar modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
+        uchar modifyPixel(int i, int j, const cv::Mat& src){
             cv::Vec3b pixel = src.at<cv::Vec3b>(i, j);
             //dst.at<uchar>(i, j) = (pixel[0] + pixel[1] + pixel[2]) % 256;
             return (pixel[0] + pixel[1] + pixel[2]) % 256;
@@ -47,7 +48,7 @@ class Sepia: public Filter<cv::Vec3b>{
         /**
          * Applies a Sepia filter by modifying each color using a weighted sum of all three colors
          */
-        cv::Vec3b modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
+        cv::Vec3b modifyPixel(int i, int j, const cv::Mat& src){
             cv::Vec3b pixel = src.at<cv::Vec3b>(i, j);
             int originalRed = pixel[2];
             int originalGreen = pixel[1];
@@ -84,10 +85,10 @@ class NaiveBlur : public Filter<cv::Vec3b>{
         /**
          * Applies a 5x5 blur using the valid convolution algorithm (no padding) with a gaussian kernel.
          */
-        cv::Vec3b modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
+        cv::Vec3b modifyPixel(int i, int j, const cv::Mat& src){
             // check if the pixel is on the border
             if (i < 2 || i >= src.rows - 2 || j < 2 || j >= src.cols - 2){
-                dst.at<cv::Vec3b>(i, j) = src.at<cv::Vec3b>(i, j); // just copy it 
+                return src.at<cv::Vec3b>(i, j); // just copy it 
             }
 
             cv::Vec3f sum = cv::Vec3f(0, 0, 0); // use a 32 bit float to prevent overflow
@@ -121,11 +122,11 @@ public:
     /**
      * Adjusts the brightness of the image by adding delta to each channel.
      */
-    PixelType modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst) override {
+    PixelType modifyPixel(int i, int j, const cv::Mat& src) override {
         PixelType pixel = src.at<PixelType>(i, j);
 
         // Adjust brightness for each channel
-        for (int c = 0; c < dst.channels(); ++c) {
+        for (int c = 0; c < src.channels(); ++c) {
             pixel[c] = static_cast<uchar>(std::min(255, std::max(0,pixel[c] + delta)));
         }
 
@@ -140,6 +141,86 @@ public:
     }
 };
 
+class Median : public Filter< cv::Vec3b > {
+    private:
+        int kernelSize = 3;
+    public:
+
+        /**
+         * Applies a 5x5 median filter to the image, replacing the channel values in each pixel with the median of the 5x5 neighborhood.
+         * Works by accumulating all the red, green, and blue values in the kernel and then sorting them to get the median at the middle of the sorted array.
+         */
+        cv::Vec3b modifyPixel(int i, int j, const cv::Mat& src) override {
+            std::vector<uchar> reds;
+            std::vector<uchar> greens;
+            std::vector<uchar> blues;
+
+            for (int k = -kernelSize/2; k <= kernelSize/2; k++){
+                for (int l = -kernelSize/2; l <= kernelSize/2; l++){
+                    cv::Vec3b pixel = src.at<cv::Vec3b>(i + k, j + l);
+                    reds.push_back(pixel[2]);
+                    greens.push_back(pixel[1]);
+                    blues.push_back(pixel[0]);
+                }
+            }
+
+            std::sort(reds.begin(), reds.end());
+            std::sort(greens.begin(), greens.end());
+            std::sort(blues.begin(), blues.end());
+
+            return cv::Vec3b(blues[(kernelSize*kernelSize)/2], greens[(kernelSize*kernelSize)/2],reds[(kernelSize*kernelSize)/2]);
+
+        }
+
+
+        int getDatatype() override {
+            return CV_8UC3;
+        }
+
+};
+
+
+class DepthFog: public Filter<cv::Vec3b>{
+
+    private:
+        cv::Mat depthValues;
+        float k;
+        cv::Vec3b fogColor;
+    public:
+        DepthFog(float k = 4, cv::Vec3b fogColor = cv::Vec3b(128, 128, 128)){
+            if(k < 0){
+                throw std::invalid_argument("fog density must be greater than or equal to 0");
+            }
+            this->k = k;
+            this->fogColor = fogColor;
+        }
+
+        void setDepthValues(cv::Mat depthValues){
+            this->depthValues = depthValues;
+        }
+        /**
+         * Applies a depth-based fog to the image using the following formula:
+         * 
+         * 
+         * F=1−exp(−k⋅(1-d))
+         * 
+         * Output Color=(1−F)⋅Image Color+F⋅Fog Color
+         * 
+         * where k is the fog density (higher values will lead to more fog), d is the depth value [0,1] with 0 representing further obejcts and 1 represnting closer ones, and Fog Color is the color of the fog (gray).
+         * 
+         */
+        cv::Vec3b modifyPixel(int i, int j, const cv::Mat& src){
+            float d = depthValues.at<float>(i, j);
+            float F = 1 - exp(-k*(1-d));
+            cv::Vec3b pixel = src.at<cv::Vec3b>(i, j);
+            return (1-F)*pixel + F*fogColor;
+        }
+
+        // because the output is a 3 channel image
+        int getDatatype(){
+            return CV_8UC3;
+        }
+};
 
 template <typename PixelType>
 int applyFilter(const cv::Mat& src, cv::Mat& dst, Filter<PixelType>* filter){
@@ -156,7 +237,7 @@ int applyFilter(const cv::Mat& src, cv::Mat& dst, Filter<PixelType>* filter){
     for(int i = 0; i < srcCopy.rows; i++){
         PixelType* row = dst.ptr<PixelType>(i);
         for(int j = 0; j < srcCopy.cols; j++){
-            row[j] = filter->modifyPixel(i, j, srcCopy, dst);
+            row[j] = filter->modifyPixel(i, j, srcCopy);
         }
     }
     return 0;
@@ -172,7 +253,7 @@ int applyFilter(const cv::Mat& src, cv::Mat& dst, Filter<PixelType>* filter){
  * @returns 0 if the operation was successful, -1 otherwise.
  */
 int alternativeGrayscale(const cv::Mat& src, cv::Mat& dst){
-    return applyFilter(src, dst, new AlternativeGrayscale());
+    return applyFilter<uchar>(src, dst, new AlternativeGrayscale());
 }
 
 /**
@@ -426,7 +507,7 @@ int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels ){
 }
 
 /**
- * Gets depth values in range [0,255] from the input image. 255 represents the farthest object and 0 represents the closest object.
+ * Gets depth values in range [0,255] from the input image. 255 represents the closest object and 0 represents the furthest object.
  * 
  * @param src The source image.
  * @param dst The destination single channel mat.
@@ -494,12 +575,13 @@ int applyToForeground(cv::Mat &src, cv::Mat &dst, int threshold, int (*processin
         return -1;
     }
 
-    // iterate thorugh the image and restore the original pixel if the depth value is < threshold (meaning it is closer)
+    // iterate thorugh the image and restore the original pixel if the depth value is < threshold (meaning it is further)
     for (int i=0;i < dst.rows;i++){
         cv::Vec3b* srcRow = src.ptr<cv::Vec3b>(i);
         cv::Vec3b* dstRow = dst.ptr<cv::Vec3b>(i);
         uchar* depthRow = depthImage.ptr<uchar>(i);
         for (int j = 0; j < dst.cols; j++){
+            // if the thing is further away, restore the original pixel
             if (depthRow[j] < threshold){
                 dstRow[j] = srcRow[j];
 
@@ -520,4 +602,39 @@ int applyToForeground(cv::Mat &src, cv::Mat &dst, int threshold, int (*processin
  */
 int adjustBrightness(cv::Mat& src, cv::Mat& dst, int delta){
     return applyFilter<cv::Vec3b>(src, dst, new AdjustBrightness<cv::Vec3b>(delta, src.type()));
+}
+
+
+/**
+ * Applies a 5x5 median filter to the image, replacing the channel values in each pixel with the median of the 5x5 neighborhood.
+ * 
+ * @param src The source image.
+ * @param dst The destination image.
+ * @returns 0 if the operation was successful, -1 otherwise.
+ */
+int medianFilter(cv::Mat &src, cv::Mat &dst){
+    return applyFilter<cv::Vec3b>(src, dst, new Median());
+}
+
+
+/**
+ * Applies depth-based fog to the image.
+ */
+int depthFog(cv::Mat &src, cv::Mat &dst){
+
+    DepthFog* filter = new DepthFog();
+
+    cv::Mat depthValues;
+    if (getDepthValues(src, depthValues) != 0){
+        std::cout << "Error getting depth values" << std::endl;
+        return -1;
+    }
+
+    // normalize the depth values to [0,1]
+    depthValues.convertTo(depthValues, CV_32F);
+    depthValues /= 255.0;
+
+    filter->setDepthValues(depthValues);
+
+    return applyFilter<cv::Vec3b>(src, dst, filter);
 }

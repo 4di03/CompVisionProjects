@@ -36,3 +36,11 @@ void prepareFrameForDisplay(cv::Mat& src, cv::Mat& dst);
 
 // increases the brightness of the RGB image by adding delta to each channel
 int adjustBrightness(cv::Mat& src, cv::Mat& dst, int delta);
+
+
+// applies a median filter to the image
+int medianFilter(cv::Mat &src, cv::Mat &dst);
+
+
+// applies depth-based fog to the image
+int depthFog(cv::Mat &src, cv::Mat &dst);

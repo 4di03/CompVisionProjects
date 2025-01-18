@@ -129,6 +129,20 @@ void processLastKeypress(cv::Mat& frame, cv::Mat& dst, char lastKeypress){
             }
             break;
         }
+        case 'r': {
+            if(medianFilter(frame,dst)!= 0){
+                std::cout << "Error applying median filter" << std::endl;
+                exit(-1);
+            }
+            break;
+        }
+        case 'v':{
+            if (depthFog(frame, dst) != 0){
+                std::cout << "Error applying depth fog" << std::endl;
+                exit(-1);
+            }
+            break;
+        }
         default:{
             frame.copyTo(dst);
             break;
@@ -177,7 +191,9 @@ int main(){
             processLastKeypress(rawFrame,displayFrame, lastKeypress);
 
             // adjust the brightness of the frame
-            adjustBrightness(displayFrame, displayFrame, deltaBrightness);
+            if (deltaBrightness != 0){
+                adjustBrightness(displayFrame, displayFrame, deltaBrightness);
+            }
 
             cv::imshow("Video", displayFrame);
 
