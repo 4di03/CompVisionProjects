@@ -18,6 +18,7 @@
  * The result is placed in dst, a 3 channel uchar image.
  */
 void processLastKeypress(cv::Mat& frame, cv::Mat& dst, char lastKeypress){
+
     switch (lastKeypress) {
         case 'g':
 
@@ -139,6 +140,13 @@ void processLastKeypress(cv::Mat& frame, cv::Mat& dst, char lastKeypress){
         case 'v':{
             if (depthFog(frame, dst) != 0){
                 std::cout << "Error applying depth fog" << std::endl;
+                exit(-1);
+            }
+            break;
+        }
+        case 'n':{
+            if (faceSwirl(frame, dst) != 0){
+                std::cout << "Error applying face swirl" << std::endl;
                 exit(-1);
             }
             break;

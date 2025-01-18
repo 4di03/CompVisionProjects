@@ -44,3 +44,7 @@ int medianFilter(cv::Mat &src, cv::Mat &dst);
 
 // applies depth-based fog to the image
 int depthFog(cv::Mat &src, cv::Mat &dst);
+
+
+// applies a Swirl effect in the detected facial region of the image
+int faceSwirl(cv::Mat &src, cv::Mat &dst);

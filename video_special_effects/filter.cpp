@@ -7,10 +7,13 @@
  */
 
 #include "filter.h"
+#include "faceDetect/faceDetect.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include "depthAnything/da2-code/DA2Network.hpp"
 #include <cmath>
+#define SWIRL_FALLOFF 5 // increasing this value will weaken the swirl effect the further from the cneter of the face
+#define MAX_SWIRL (M_PI)
 
 template <typename PixelType>
 class Filter{
@@ -211,7 +214,7 @@ class DepthFog: public Filter<cv::Vec3b>{
          */
         cv::Vec3b modifyPixel(int i, int j, const cv::Mat& src){
             float d = depthValues.at<float>(i, j);
-            float F = 1 - exp(-k*(1-d));
+            float F = 1 - std::exp(-k*(1-d));
             cv::Vec3b pixel = src.at<cv::Vec3b>(i, j);
             return (1-F)*pixel + F*fogColor;
         }
@@ -637,4 +640,78 @@ int depthFog(cv::Mat &src, cv::Mat &dst){
     filter->setDepthValues(depthValues);
 
     return applyFilter<cv::Vec3b>(src, dst, filter);
+}
+
+
+
+/**
+ * Applies a swirl effect in the given face region of the image.
+ * We apply an inverse mapping to the pixels in the face region to create the swirl effect without having holes in the distortion.
+ * The swirl is strongest in the center, and decreases as we move away from the center.
+ * @param src The source image.
+ * @param dst The destination image, which should already be a copy of the source image foor which the facial data exists.
+ * @param face The face region, represented by a cv::Rect.
+ * @returns 0 if the operation was successful, -1 otherwise.
+ */
+int applySwirl(cv::Mat& src ,cv::Mat &dst, cv::Rect& face){
+    
+    cv::Point center = cv::Point(face.x + face.width/2, face.y + face.height/2);
+
+    int topRightX = face.x + face.width;
+    int topRightY = face.y;
+    float maxRadius = norm(center - cv::Point(topRightX, topRightY));
+    for (int i =face.y; i<= face.y+face.height; i++){
+        cv::Vec3b* dstRow = dst.ptr<cv::Vec3b>(i);
+        for (int j = face.x ; j < face.x+face.width; j++){
+            int y = i - center.y;
+            int x = j - center.x;
+            double r = sqrt(x*x + y*y);
+            // apply the swirl effect
+            double angle = std::atan2(y, x);
+            // rotate the pixel by increasing its angle, with a maximum rotation of MAX_SWIRL radians at the furthest points
+            double prevAngle = angle -  (MAX_SWIRL *(std::exp(-(r/maxRadius)*SWIRL_FALLOFF)));
+
+            // we refer to these points as previous points as they are the result of doing the inverse of the rotation, so we can get the pixel value from the previous point
+            int prevX = r * std::cos(prevAngle) + center.x;
+            int prevY = r * std::sin(prevAngle) + center.y;
+
+            dstRow[j] = src.at<cv::Vec3b>(prevY, prevX);
+        }
+
+    }
+
+    return 0;
+
+}
+
+/**
+ * Applies a Swirl effect in the detected facial region of the image.
+ * This essentially applies a rotation to the pixels in the facial region using the spherical coordinate system, 
+ * and the rotation is dependent on the distance from the center of the facial region.
+ * @param src The source image.
+ * @param dst The destination image.
+ * @returns 0 if the operation was successful, -1 otherwise.
+ */
+int faceSwirl(cv::Mat &src, cv::Mat &dst){
+
+    cv::Mat srcCopy = src.clone();// copy src so that we dont have to read and write to the same image
+
+    src.copyTo(dst);
+    std::vector<cv::Rect> faces;
+    cv::Mat grey;
+    cv::cvtColor(srcCopy, grey, cv::COLOR_BGR2GRAY);
+    detectFaces(grey, faces);
+
+
+    for (cv:: Rect face : faces){
+
+        if (applySwirl(src, dst, face) != 0){
+            std::cout << "Error applying swirl" << std::endl;
+            return -1;
+        }
+
+    }
+
+    return 0;
+
 }
