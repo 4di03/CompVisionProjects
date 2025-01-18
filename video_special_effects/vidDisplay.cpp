@@ -18,135 +18,122 @@
  * The result is placed in dst, a 3 channel uchar image.
  */
 void processLastKeypress(cv::Mat& frame, cv::Mat& dst, char lastKeypress){
-switch (lastKeypress) {
-    case 'g':
+    switch (lastKeypress) {
+        case 'g':
 
-        cv::cvtColor(frame, dst, cv::COLOR_BGR2GRAY);
-        break;
+            cv::cvtColor(frame, dst, cv::COLOR_BGR2GRAY);
+            break;
 
-    case 'h':
-        if (alternativeGrayscale(frame, dst) != 0) {
-            std::cout << "Error applying alternative grayscale" << std::endl;
-            exit(-1);
-        }
-        break;
+        case 'h':
+            if (alternativeGrayscale(frame, dst) != 0) {
+                std::cout << "Error applying alternative grayscale" << std::endl;
+                exit(-1);
+            }
+            break;
 
-    case 'p':
-        if (sepia(frame, dst) != 0) {
-            std::cout << "Error applying sepia filter" << std::endl;
-            exit(-1);
-        }
-        break;
+        case 'p':
+            if (sepia(frame, dst) != 0) {
+                std::cout << "Error applying sepia filter" << std::endl;
+                exit(-1);
+            }
+            break;
 
-    case 'b':
-        if (blur5x5_2(frame, dst) != 0) {
-            std::cout << "Error applying blur5x5_1" << std::endl;
-            exit(-1);
-        }
-        break;
+        case 'b':
+            if (blur5x5_2(frame, dst) != 0) {
+                std::cout << "Error applying blur5x5_1" << std::endl;
+                exit(-1);
+            }
+            break;
 
-    case 'x':{
-        cv::Mat sobelOut;
+        case 'x':{
+            cv::Mat sobelOut;
 
-        if (sobelX3x3(frame, sobelOut) != 0) {
-            std::cout << "Error applying sobelX3x3" << std::endl;
-            exit(-1);
-        }
-        prepareFrameForDisplay(sobelOut, dst);
+            if (sobelX3x3(frame, sobelOut) != 0) {
+                std::cout << "Error applying sobelX3x3" << std::endl;
+                exit(-1);
+            }
+            prepareFrameForDisplay(sobelOut, dst);
 
-        break;
-    }
-
-    case 'y':{
-        cv::Mat sobelOut;
-        
-        if (sobelY3x3(frame, sobelOut) != 0) {
-            std::cout << "Error applying sobelY3x3" << std::endl;
-            exit(-1);
-        }
-        prepareFrameForDisplay(sobelOut,  dst);
-
-        break;
-    }
-
-    case 'm': {
-        cv::Mat sx, sy;
-        if (sobelX3x3(frame, sx) != 0) {
-            std::cout << "Error getting sobelX3x3" << std::endl;
-            exit(-1);
-        }
-        if (sobelY3x3(frame, sy) != 0) {
-            std::cout << "Error getting sobelY3x3" << std::endl;
-            exit(-1);
-        }
-        if (magnitude(sx, sy, dst) != 0) {
-            std::cout << "Error getting gradient magnitude" << std::endl;
-            exit(-1);
-        }
-        break;
-    }
-
-    case 'l':{
-        if (blurQuantize(frame, dst, 10) != 0) {
-            std::cout << "Error applying blurQuantize" << std::endl;
-            exit(-1);
-        }
-        break;
-    }
-    case 'f':{
-        // detects and draws faces on the frame
-        std::vector<cv::Rect> faces;
-        cv::Mat grey;
-        cv::cvtColor(frame, grey, cv::COLOR_BGR2GRAY);
-
-        if (detectFaces(grey, faces) != 0){
-            std::cout << "Error detecting faces" << std::endl;
-            exit(-1);
-        }
-        // copy the frame to dst so that we can draw the boxes on dst
-        frame.copyTo(dst);
-        if (drawBoxes(dst, faces) != 0){
-            std::cout << "Error drawing boxes" << std::endl;
-            exit(-1);
-        }
-        break;
-
-
-    }
-    case 'd':{
-        if (depth(frame, dst) != 0){
-            std::cout << "Error applying depth" << std::endl;
-            exit(-1);
+            break;
         }
 
-        break;
-    }
-    case 'z':{
-        // applies sepia to only the foreground of the image
-        if (applyToForeground(frame, dst, 128, sepia) != 0){
-            std::cout << "Error applying blurBackground" << std::endl;
-            exit(-1);
+        case 'y':{
+            cv::Mat sobelOut;
+            
+            if (sobelY3x3(frame, sobelOut) != 0) {
+                std::cout << "Error applying sobelY3x3" << std::endl;
+                exit(-1);
+            }
+            prepareFrameForDisplay(sobelOut,  dst);
+
+            break;
         }
-        break;
-    }
-    case '+':{
-        if (adjustBrightness(frame,dst, 10)){
-            std::cout << "Error adjusting brightness" << std::endl;
-            exit(-1);
+
+        case 'm': {
+            cv::Mat sx, sy;
+            if (sobelX3x3(frame, sx) != 0) {
+                std::cout << "Error getting sobelX3x3" << std::endl;
+                exit(-1);
+            }
+            if (sobelY3x3(frame, sy) != 0) {
+                std::cout << "Error getting sobelY3x3" << std::endl;
+                exit(-1);
+            }
+            if (magnitude(sx, sy, dst) != 0) {
+                std::cout << "Error getting gradient magnitude" << std::endl;
+                exit(-1);
+            }
+            break;
         }
-    }
-    case '-':{
-        if (adjustBrightness(frame,dst, -10)){
-            std::cout << "Error adjusting brightness" << std::endl;
-            exit(-1);
+
+        case 'l':{
+            if (blurQuantize(frame, dst, 10) != 0) {
+                std::cout << "Error applying blurQuantize" << std::endl;
+                exit(-1);
+            }
+            break;
         }
-    }
+        case 'f':{
+            // detects and draws faces on the frame
+            std::vector<cv::Rect> faces;
+            cv::Mat grey;
+            cv::cvtColor(frame, grey, cv::COLOR_BGR2GRAY);
+
+            if (detectFaces(grey, faces) != 0){
+                std::cout << "Error detecting faces" << std::endl;
+                exit(-1);
+            }
+            // copy the frame to dst so that we can draw the boxes on dst
+            frame.copyTo(dst);
+            if (drawBoxes(dst, faces) != 0){
+                std::cout << "Error drawing boxes" << std::endl;
+                exit(-1);
+            }
+            break;
 
 
-    default:
-        frame.copyTo(dst);
-        break;
-}
+        }
+        case 'd':{
+            if (depth(frame, dst) != 0){
+                std::cout << "Error applying depth" << std::endl;
+                exit(-1);
+            }
+
+            break;
+        }
+        case 'z':{
+            // applies sepia to only the foreground of the image
+            if (applyToForeground(frame, dst, 128, sepia) != 0){
+                std::cout << "Error applying blurBackground" << std::endl;
+                exit(-1);
+            }
+            break;
+        }
+        default:{
+            frame.copyTo(dst);
+            break;
+        }
+    }   
 
 
 }
@@ -171,9 +158,12 @@ int main(){
     cv::namedWindow("Video", 1); // identifies a window
     cv::Mat rawFrame;
     char lastKeypress;
+    int deltaBrightness = 0;
     cv::Mat resultantFrame;
     while(true){
             *capdev >> rawFrame; // get a new frame from the camera, treat as a stream
+
+            std::cout << "rawFrame type: " << rawFrame.type() << std::endl;
             if( rawFrame.empty() ) {
                 printf("frame is empty\n");
                 break;
@@ -182,6 +172,9 @@ int main(){
 
             processLastKeypress(rawFrame,displayFrame, lastKeypress);
 
+            cv::imshow("L173", displayFrame);
+            // adjust the brightness of the frame
+            adjustBrightness(displayFrame, displayFrame, deltaBrightness);
 
             cv::imshow("Video", displayFrame);
 
@@ -192,9 +185,14 @@ int main(){
             }else if(key == 's'){
                 // saves the frame as a screenshot
                 cv::imwrite(SCREENSHOT_SAVE_LOC, displayFrame);
-            } else if (key != -1){ // can compare due to implicit conversion to int
-                lastKeypress = key;
+            } else if ( key == '+' ||  key == '='){
+                deltaBrightness += 10;
+            } else if ( key == '-' || key == '_'){
+                deltaBrightness -= 10;
             }
+            else if (key != -1){ // can compare due to implicit conversion to int
+                lastKeypress = key;
+            } 
     
     }
 

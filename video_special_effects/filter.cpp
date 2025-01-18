@@ -11,13 +11,12 @@
 #include <iostream>
 #include "depthAnything/da2-code/DA2Network.hpp"
 
-
 class Filter{
     public:
         /**
          * Strategy function for modifying a pixel in the image.
          */
-        virtual void modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst) = 0;
+        virtual cv::Scalar modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst) = 0;
 
         /**
          * Returns the datatype of the destination image.
@@ -30,9 +29,10 @@ class AlternativeGrayscale : public Filter{
         /**
          * Applies a custom grayscale filter by summing the RGB values and then modding by 256.
          */
-        void modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
+        cv::Scalar modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
             cv::Vec3b pixel = src.at<cv::Vec3b>(i, j);
-            dst.at<uchar>(i, j) = (pixel[0] + pixel[1] + pixel[2]) % 256;
+            //dst.at<uchar>(i, j) = (pixel[0] + pixel[1] + pixel[2]) % 256;
+            return (pixel[0] + pixel[1] + pixel[2]) % 256;
         }
 
         // because the output is a single channel grayscale image
@@ -46,7 +46,7 @@ class Sepia: public Filter{
         /**
          * Applies a Sepia filter by modifying each color using a weighted sum of all three colors
          */
-        void modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
+        cv::Scalar modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
             cv::Vec3b pixel = src.at<cv::Vec3b>(i, j);
             int originalRed = pixel[2];
             int originalGreen = pixel[1];
@@ -54,7 +54,7 @@ class Sepia: public Filter{
             int newBlue = originalRed * 0.272 + originalGreen * 0.534 + originalBlue * 0.131;
             int newGreen = originalRed * 0.349 + originalGreen * 0.686 + originalBlue * 0.168;
             int newRed = originalRed * 0.393 + originalGreen * 0.769 + originalBlue * 0.189;
-            dst.at<cv::Vec3b>(i, j) = cv::Vec3b(newBlue, newGreen, newRed);
+            return cv::Vec3b(newBlue, newGreen, newRed);
 
         }
 
@@ -83,7 +83,7 @@ class NaiveBlur : public Filter{
         /**
          * Applies a 5x5 blur using the valid convolution algorithm (no padding) with a gaussian kernel.
          */
-        void modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
+        cv::Scalar modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
             // check if the pixel is on the border
             if (i < 2 || i >= src.rows - 2 || j < 2 || j >= src.cols - 2){
                 dst.at<cv::Vec3b>(i, j) = src.at<cv::Vec3b>(i, j); // just copy it 
@@ -99,7 +99,7 @@ class NaiveBlur : public Filter{
                 }
             }
 
-            dst.at<cv::Vec3b>(i, j) = sum;
+            return sum;
         }
         // because this is for a 3 channel image
         int getDatatype(){
@@ -111,15 +111,17 @@ class NaiveBlur : public Filter{
 class AdjustBrightness: public Filter{
     private:
         int delta;
+        int datatype;
     public:
 
-        AdjustBrightness(int delta){
+        AdjustBrightness(int delta, int datatype){
             this->delta = delta;
+            this->datatype = datatype;
         }
         /**
          * Increases the brightness of the RGB image by adding delta to each channel.
          */
-        void modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
+        cv::Scalar modifyPixel(int i, int j, const cv::Mat& src, cv::Mat& dst){
             cv::Vec3b pixel = src.at<cv::Vec3b>(i, j);
             int originalRed = pixel[2];
             int originalGreen = pixel[1];
@@ -127,13 +129,13 @@ class AdjustBrightness: public Filter{
             int newBlue = std::min(255, std::max(0, originalBlue + delta));
             int newGreen =  std::min(255, std::max(0, originalGreen + delta));
             int newRed = std::min(255, std::max(0, originalRed + delta));
-            dst.at<cv::Vec3b>(i, j) = cv::Vec3b(newBlue, newGreen, newRed);
+            return cv::Scalar(newBlue, newGreen, newRed);
 
         }
 
         // because the output is a 3 channel image
         int getDatatype(){
-            return CV_8UC3;
+            return datatype;
         }
 };
 
@@ -141,18 +143,21 @@ class AdjustBrightness: public Filter{
 
 int applyFilter(const cv::Mat& src, cv::Mat& dst, Filter* filter){
     if(src.empty()){
+        std::cout << "Error: Source image is empty" << std::endl;
         return -1;
     }
     // copy src so that we dont have to read and write to the same image
     cv::Mat srcCopy = src.clone();
     // reset the dst image (for case where src and dst are the same)
     dst.create(src.size(), filter->getDatatype());
-    
+    std::cout << "SRC datatype: " << src.type() << std::endl;
+    std::cout << "DST datatype: " << dst.type() << std::endl;
 
 
     for(int i = 0; i < srcCopy.rows; i++){
+        cv::Scalar* row = dst.ptr<cv::Scalar>(i);
         for(int j = 0; j < srcCopy.cols; j++){
-            filter->modifyPixel(i, j, srcCopy, dst);
+            row[j] = filter->modifyPixel(i, j, srcCopy, dst);
         }
     }
     return 0;
@@ -509,5 +514,5 @@ int applyToForeground(cv::Mat &src, cv::Mat &dst, int threshold, int (*processin
  * @returns 0 if the operation was successful, -1 otherwise.
  */
 int adjustBrightness(cv::Mat& src, cv::Mat& dst, int delta){
-    return applyFilter(src, dst, new AdjustBrightness(delta));
+    return applyFilter(src, dst, new AdjustBrightness(delta, src.type()));
 }
