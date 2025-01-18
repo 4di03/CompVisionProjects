@@ -129,6 +129,19 @@ switch (lastKeypress) {
         }
         break;
     }
+    case '+':{
+        if (adjustBrightness(frame,dst, 10)){
+            std::cout << "Error adjusting brightness" << std::endl;
+            exit(-1);
+        }
+    }
+    case '-':{
+        if (adjustBrightness(frame,dst, -10)){
+            std::cout << "Error adjusting brightness" << std::endl;
+            exit(-1);
+        }
+    }
+
 
     default:
         frame.copyTo(dst);
