@@ -98,7 +98,7 @@ class NaiveBlur : public Filter<cv::Vec3b>{
             for (int k = -2; k <= 2; k++){
                 for (int l = -2; l <= 2; l++){
                     // get the weighted sum of the pixel and the kernel by centering the kernel at the pixel
-                    cv::Vec3f pixel = src.at<cv::Vec3f>(i + k, j + l);
+                    cv::Vec3b pixel = src.at<cv::Vec3b>(i + k, j + l);
                     //std::cout << pixel * (kernel.at<float>(k + 2, l + 2)/kernelSum) << std::endl;
                     sum += pixel * (kernel.at<float>(k + 2, l + 2)); // divide by kernelSum to normalize the kernel
                 }
@@ -246,6 +246,26 @@ int applyFilter(const cv::Mat& src, cv::Mat& dst, Filter<PixelType>* filter){
     return 0;
 }
 
+template <typename PixelType>
+int applyFilterSlow(const cv::Mat& src, cv::Mat& dst, Filter<PixelType>* filter){
+    if(src.empty()){
+        std::cout << "Error: Source image is empty" << std::endl;
+        return -1;
+    }
+    // copy src so that we dont have to read and write to the same image
+    cv::Mat srcCopy = src.clone();
+    // reset the dst image (for case where src and dst are the same)
+    dst.create(src.size(), filter->getDatatype());
+
+
+    for(int i = 0; i < srcCopy.rows; i++){
+        for(int j = 0; j < srcCopy.cols; j++){
+            dst.at<PixelType>(i, j) = filter->modifyPixel(i, j, srcCopy);
+        }
+    }
+    return 0;
+}
+
 
 /**
  * Applies a custom grayscale filter to the image.
@@ -286,7 +306,7 @@ int sepia(const cv::Mat& src, cv::Mat& dst){
  * @returns 0 if the operation was successful, -1 otherwise.
  */
 int blur5x5_1( cv::Mat &src, cv::Mat &dst ){
-    return applyFilter<cv::Vec3b>(src, dst, new NaiveBlur());
+    return applyFilterSlow<cv::Vec3b>(src, dst, new NaiveBlur());
 
 }
 
@@ -666,7 +686,6 @@ int applySwirl(cv::Mat& src ,cv::Mat &dst, cv::Rect& face){
             int y = i - center.y;
             int x = j - center.x;
             double r = sqrt(x*x + y*y);
-            // apply the swirl effect
             double angle = std::atan2(y, x);
             // rotate the pixel by increasing its angle, with a maximum rotation of MAX_SWIRL radians at the furthest points
             double prevAngle = angle -  (MAX_SWIRL *(std::exp(-(r/maxRadius)*SWIRL_FALLOFF)));
