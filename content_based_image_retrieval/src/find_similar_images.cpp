@@ -14,10 +14,13 @@
 
 std::map<std::string, FeatureExtractor*> featureExtractorMap = {
     {"CenterSquare" , new CenterSquareFeatureExtractor(7)},
+    {"Histogram3D" , new Histogram3D(8)},
+
 };
 
 std::map<std::string, DistanceMetric*> distanceMetricMap = {
     {"SSD" , new SSDDistance()},
+    {"HistogramIntersection" , new HistogramIntersection()},
 };
 
 /**
@@ -116,7 +119,13 @@ int main(int argc, char *argv[]) {
 
 
     // create a tmp_output directory and save the target image and the top N images
+
     std::string outputDir = "tmp_output";
+
+    // delete the directory if it already exists
+    std::string deleteCommand = "rm -rf " + outputDir;
+    std::system(deleteCommand.c_str()); 
+
     mkdir(outputDir.c_str(), 0777);
 
     // save the target image

@@ -36,7 +36,10 @@ public:
             const cv::Vec3b* bRow = b.ptr<cv::Vec3b>(i);
             for (int j = 0; j < a.cols; j++)
             {
-                ssd += pow(aRow[j][0] - bRow[j][0], 2) + pow(aRow[j][1] - bRow[j][1], 2) + pow(aRow[j][2] - bRow[j][2], 2);
+                int blueDiff = aRow[j][0] - bRow[j][0];
+                int greenDiff = aRow[j][1] - bRow[j][1];
+                int redDiff = aRow[j][2] - bRow[j][2];
+                ssd += blueDiff * blueDiff + greenDiff * greenDiff + redDiff * redDiff;
             }
         }
 
@@ -45,3 +48,45 @@ public:
 };
 
 
+class HistogramIntersection : public DistanceMetric
+{
+public:
+
+    /**
+     * Compute the histogram intersection between two feature vectors (3D histograms).
+     * @param a the first feature vector (3D histogram). This should be normalized
+     * @param b the second feature vector (3D histogram). This should be normalized
+     * 
+     */
+    double distance(const cv::Mat& a, const cv::Mat& b) const override
+    {
+        // Check if the two feature vectors have the same size
+        if (a.size() != b.size())
+        {
+            throw std::invalid_argument("Feature vectors have different sizes");
+        }
+
+        // Compute the histogram intersection
+        double intersection = 0;
+
+        int size[3] = {a.size[0], a.size[1], a.size[2]};  // Correct way
+        for (int i = 0; i < size[0]; i++)
+        {   
+            for (int j = 0; j < size[1]; j++)
+            {
+                for (int k = 0; k < size[2]; k++)
+                {   
+                    int idx[] = {i, j, k};
+                    float minVal = std::min(a.at<float>(idx), b.at<float>(idx));
+                    intersection += minVal;
+
+                    
+                }
+
+            }
+        }
+
+
+        return 1 - intersection;
+    }
+};
