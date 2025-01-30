@@ -1,16 +1,47 @@
-
+/**
+ * 
+ */
 #include <opencv2/opencv.hpp>
 
 
-template <typename FeatureVectorType>
 class FeatureExtractor {
 public:
     // Extract features from an image (cv::Mat) into a feature vector (cv::Mat)
-    virtual FeatureVectorType extractFeatures(const cv::Mat& image) = 0;
+    virtual std::vector<cv::Mat> extractFeatures(const cv::Mat& image) = 0;
+};
+
+// ideally these two would be implemented with composition, but for times sake I will use inheritance
+
+
+
+class SingleFeatureExtractor : public FeatureExtractor {
+private: 
+    // Extract features from an image (cv::Mat) into a feature vector (cv::Mat)
+    virtual cv::Mat _extractFeatures(const cv::Mat& image) = 0;
+public:
+    // Extract features from an image (cv::Mat) into a feature vector (cv::Mat)
+    std::vector<cv::Mat> extractFeatures(const cv::Mat& image){
+        std::vector<cv::Mat> features;
+        features.push_back(_extractFeatures(image));
+        return features;
+    }
 };
 
 
-class CenterSquareFeatureExtractor : public FeatureExtractor<cv::Mat>{
+class MultiFeatureExtractor : public FeatureExtractor {
+private: 
+    // Extract features from an image (cv::Mat) into a feature vector (cv::Mat)
+    virtual std::vector<cv::Mat> _extractFeatures(const cv::Mat& image) = 0;
+
+public:
+    // Extract features from an image (cv::Mat) into a set of feature vector (std::vector<cv::Mat>)
+    std::vector<cv::Mat> extractFeatures(const cv::Mat& image){
+        return _extractFeatures(image);
+    }
+};
+
+
+class CenterSquareFeatureExtractor : public SingleFeatureExtractor{
     private:
         // The size of the center square
         int size;
@@ -22,7 +53,7 @@ class CenterSquareFeatureExtractor : public FeatureExtractor<cv::Mat>{
         /**
          * Extract the center square of the image with dimensions size x size
          */
-        cv::Mat extractFeatures(const cv::Mat& image) override
+        cv::Mat _extractFeatures(const cv::Mat& image) override
         {
             // Check if the image is empty
             if (image.empty())
@@ -40,7 +71,7 @@ class CenterSquareFeatureExtractor : public FeatureExtractor<cv::Mat>{
 };
 
 
-class Histogram3D : public FeatureExtractor<cv::Mat>{
+class Histogram3D : public SingleFeatureExtractor{
 
     private:
         int numBins;
@@ -54,7 +85,7 @@ class Histogram3D : public FeatureExtractor<cv::Mat>{
          * @param image the input image (CV_8UC3)
          * @return the 3D histogram (CV_8U) with dimension (numBins, numBins, numBins)
          */
-        cv::Mat extractFeatures(const cv::Mat& image) override
+        cv::Mat _extractFeatures(const cv::Mat& image) override
         {
 
             // Check if the image is empty
@@ -100,7 +131,7 @@ class Histogram3D : public FeatureExtractor<cv::Mat>{
 };
 
 
-class Histogram2D : public FeatureExtractor<cv::Mat>{
+class Histogram2D : public SingleFeatureExtractor{
 
     private:
         int numBins = 256;
@@ -112,7 +143,7 @@ class Histogram2D : public FeatureExtractor<cv::Mat>{
          * @param image the input image (CV_8UC3)
          * @ return the 2D histogram (CV_8U) with dimension (numBins, numBins). Only the top left triangle is filled as the histogram values are normalized such that r+g+b=1
          */
-        cv::Mat extractFeatures(const cv::Mat& image) override{
+        cv::Mat _extractFeatures(const cv::Mat& image) override{
 
 
             // The below code is a modified snippet from Bruce Maxwell's makeHist.cpp demo
@@ -155,7 +186,7 @@ class Histogram2D : public FeatureExtractor<cv::Mat>{
 };
 
 
-class MultiHistogram: public FeatureExtractor<std::vector<cv::Mat>>{
+class MultiHistogram: public MultiFeatureExtractor{
 
     public:
 
@@ -165,15 +196,15 @@ class MultiHistogram: public FeatureExtractor<std::vector<cv::Mat>>{
          * @param image the input image (CV_8UC3)
          * @return  a vector of 3D histograms (CV_8U) with dimension (numBins, numBins, numBins)
          */
-        std::vector<cv::Mat >extractFeatures(const cv::Mat& image) override
+        std::vector<cv::Mat> _extractFeatures(const cv::Mat& image) override
         {
 
             Histogram2D hist2D(8);
             Histogram3D hist3D(256);
 
             std::vector<cv::Mat> histograms;
-            histograms.push_back(hist2D.extractFeatures(image));
-            histograms.push_back(hist3D.extractFeatures(image));
+            histograms.push_back(hist2D.extractFeatures(image)[0]);
+            histograms.push_back(hist3D.extractFeatures(image)[0]);
 
             return histograms;
 

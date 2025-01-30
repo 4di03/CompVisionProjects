@@ -10,20 +10,41 @@
 #include <dirent.h>
 #include "distanceMetric.h"
 #include "featureExtractor.h"
-#include <any>
 
-std::map<std::string, std::any> featureExtractorMap = {
-    {"CenterSquare" , new CenterSquareFeatureExtractor(7)},
-    {"Histogram3D" , new Histogram3D(8)},
-    {"MultiHistogram", new MultiHistogram()}
 
-};
 
-std::map<std::string, std::any> distanceMetricMap = {
-    {"SSD" , new SSDDistance()},
-    {"HistogramIntersection" , new HistogramIntersection()},
-    {"MultiHistogramIntersection", new MultiHistogramIntersection()}
-};
+FeatureExtractor* generateFeatureExtractor(std::string name){
+
+    if (name == "CenterSquare"){
+        return new CenterSquareFeatureExtractor(7);
+    }
+    else if (name == "Histogram3D"){
+        return new Histogram3D(8);
+    }
+    else if (name == "MultiHistogram"){
+        return new MultiHistogram();
+    }
+    else{
+        throw std::invalid_argument("Invalid feature extractor name");
+    }
+}
+DistanceMetric* generateDistanceMetric(std::string name){
+
+    if (name == "SSD"){
+        return new SSDDistance();
+    }
+    else if (name == "HistogramIntersection"){
+        return new HistogramIntersection();
+    }
+    else if (name == "MultiHistogramIntersection"){
+        return new MultiHistogramIntersection();
+    }
+    else{
+        throw std::invalid_argument("Invalid distance metric name");
+    }
+}
+
+
 
 /**
  * Given a target image, a database of images, a method of computing features for an image, 
@@ -53,24 +74,13 @@ int main(int argc, char *argv[]) {
     std::string distanceMetric = argv[4];
     int numOutputImages = std::stoi(argv[5]);
 
-    // check if the feature method is valid
-    if (featureExtractorMap.find(featureMethod) == featureExtractorMap.end()){
-        printf("Invalid feature method\n");
-        exit(-1);
-    }
 
-    // check if the distance metric is valid
-    if (distanceMetricMap.find(distanceMetric) == distanceMetricMap.end()){
-        printf("Invalid distance metric\n");
-        exit(-1);
-    }
-
-    FeatureExtractor<std::any>* featureExtractorMethod = featureExtractorMap[featureMethod];
-    DistanceMetric<* distanceMetricMethod = distanceMetricMap[distanceMetric];
+    FeatureExtractor* featureExtractorMethod = generateFeatureExtractor(featureMethod);
+    DistanceMetric* distanceMetricMethod = generateDistanceMetric(distanceMetric);
 
     // Extract features from the target image
     cv::Mat targetImage = cv::imread(targetImagePath);
-    auto targetFeatures = featureExtractorMethod->extractFeatures(targetImage);
+    std::vector<cv::Mat> targetFeatures = featureExtractorMethod->extractFeatures(targetImage);
 
     std::vector <std::pair<std::string, double>> imageDistances;
 

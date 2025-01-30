@@ -3,18 +3,79 @@
 #include <cmath>
 
 
-template <typename FeatureVectorType>
 class DistanceMetric {
 public: 
     // Compute the distance(double) between two feature vectors (represented as cv::Mat)
     // a smaller distance means the two feature vectors are more similar
-    virtual double distance(const FeatureVectorType& a, const FeatureVectorType& b) const = 0;
+    virtual double distance(const std::vector<cv::Mat>& a, const std::vector<cv::Mat>& b) const = 0;
+
+};
+
+
+class MultipleDistanceMetric : public DistanceMetric {
+private:
+
+    // computes the distance between multiple feature vectors
+    virtual double _distance(const std::vector<cv::Mat>&, const std::vector<cv::Mat>&) const = 0;
+public:
+    // Compute the distance(double) between two sets feature vectors (represented as std::vector<cv::Mat>)
+    // a smaller distance means the two feature vectors are more similar
+    double distance(const std::vector<cv::Mat>& a, const std::vector<cv::Mat>& b) const{
+        if (a.size() != b.size())
+        {
+            throw std::invalid_argument("Feature vectors have different sizes");
+        }
+        for (int i = 0; i < a.size(); i++)
+        {
+            if (a[i].size() != b[i].size())
+            {
+                throw std::invalid_argument("Individual Feature vectors have different sizes");
+            }
+        }
+        if (a.size() <= 1)
+        {
+            throw std::invalid_argument("Must be single mat");
+        }    
+        
+        return _distance(a, b);
+        
+        }
+
+
+};
+
+class SingleDistanceMetric : public DistanceMetric {
+private:
+
+    // computes the distance between two feature vectors
+    virtual double _distance(const cv::Mat&, const cv::Mat&) const = 0;
+public:
+    // Compute the distance(double) between two feature vectors (represented as cv::Mat)
+    // a smaller distance means the two feature vectors are more similar
+    double distance(const std::vector<cv::Mat>& a, const std::vector<cv::Mat>& b) const{
+        if (a.size() != b.size())
+        {
+            throw std::invalid_argument("Feature vectors have different sizes");
+        }
+        if (a[0].size() != b[0].size())
+        {
+            throw std::invalid_argument("Individual Feature vectors have different sizes");
+        }
+        if (a.size() > 1)
+        {
+            throw std::invalid_argument("Must be single mat");
+        }    
+        
+        return _distance(a[0], b[0]);
+        
+        }
+
 
 };
 
 
 
-class SSDDistance : public DistanceMetric<cv::Mat>
+class SSDDistance : public SingleDistanceMetric
 {
 public:
 
@@ -22,13 +83,8 @@ public:
      * Compute the sum of squared differences between two feature vectors (3-channel images).
      * 
      */
-    double distance(const cv::Mat& a, const cv::Mat& b) const override
+    double _distance(const cv::Mat& a, const cv::Mat& b) const override
     {
-        // Check if the two feature vectors have the same size
-        if (a.size() != b.size())
-        {
-            throw std::invalid_argument("Feature vectors have different sizes");
-        }
 
         // Compute the sum of squared differences
         double ssd = 0;
@@ -50,7 +106,7 @@ public:
 };
 
 
-class HistogramIntersection : public DistanceMetric<cv::Mat>
+class HistogramIntersection : public SingleDistanceMetric
 {
 public:
 
@@ -60,7 +116,7 @@ public:
      * @param b the second feature vector (ND histogram). This should be normalized
      * 
      */
-    double distance(const cv::Mat& a, const cv::Mat& b) const override
+    double _distance(const cv::Mat& a, const cv::Mat& b) const override
     {
         // Check if the two feature vectors have the same size
         if (a.size() != b.size())
@@ -83,24 +139,25 @@ public:
 };
 
 
-class MultiHistogramIntersection : public DistanceMetric<std::vector<cv::Mat>>
+class MultiHistogramIntersection : public MultipleDistanceMetric
 {
 
 public:
 
     /**
-     * Compute the summed histogram intersection between two feature vectors (3D histograms).
+     * Compute the summed histogram intersection between multiple histogram feature vectors.
      * In this summing, all vectors are weighted equally.
      * @param a the first feature vector (3D histogram). This should be normalized
      * @param b the second feature vector (3D histogram). This should be normalized
      * 
      */
-    double distance(const std::vector<cv::Mat>& a, const std::vector<cv::Mat>& b) const override
+    double _distance(const std::vector<cv::Mat>& a, const std::vector<cv::Mat>& b) const override
     {      
         double distance = 0;
         HistogramIntersection histIntersection = HistogramIntersection();
         for(int i = 0; i < a.size(); i++)
-        {
+
+        {      
             if (a[i].size() != b[i].size())
             {
                 throw std::invalid_argument("Feature vectors have different sizes");
