@@ -10,17 +10,19 @@
 #include <dirent.h>
 #include "distanceMetric.h"
 #include "featureExtractor.h"
+#include <any>
 
-
-std::map<std::string, FeatureExtractor*> featureExtractorMap = {
+std::map<std::string, std::any> featureExtractorMap = {
     {"CenterSquare" , new CenterSquareFeatureExtractor(7)},
     {"Histogram3D" , new Histogram3D(8)},
+    {"MultiHistogram", new MultiHistogram()}
 
 };
 
-std::map<std::string, DistanceMetric*> distanceMetricMap = {
+std::map<std::string, std::any> distanceMetricMap = {
     {"SSD" , new SSDDistance()},
     {"HistogramIntersection" , new HistogramIntersection()},
+    {"MultiHistogramIntersection", new MultiHistogramIntersection()}
 };
 
 /**
@@ -63,12 +65,12 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    FeatureExtractor* featureExtractorMethod = featureExtractorMap[featureMethod];
-    DistanceMetric* distanceMetricMethod = distanceMetricMap[distanceMetric];
+    FeatureExtractor<std::any>* featureExtractorMethod = featureExtractorMap[featureMethod];
+    DistanceMetric<* distanceMetricMethod = distanceMetricMap[distanceMetric];
 
     // Extract features from the target image
     cv::Mat targetImage = cv::imread(targetImagePath);
-    cv::Mat targetFeatures = featureExtractorMethod->extractFeatures(targetImage);
+    auto targetFeatures = featureExtractorMethod->extractFeatures(targetImage);
 
     std::vector <std::pair<std::string, double>> imageDistances;
 

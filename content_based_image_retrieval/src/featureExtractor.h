@@ -1,14 +1,16 @@
 
 #include <opencv2/opencv.hpp>
 
-class FeatureExtractor{
+
+template <typename FeatureVectorType>
+class FeatureExtractor {
 public:
     // Extract features from an image (cv::Mat) into a feature vector (cv::Mat)
-    virtual cv::Mat extractFeatures(const cv::Mat& image) = 0;
+    virtual FeatureVectorType extractFeatures(const cv::Mat& image) = 0;
 };
 
 
-class CenterSquareFeatureExtractor : public FeatureExtractor{
+class CenterSquareFeatureExtractor : public FeatureExtractor<cv::Mat>{
     private:
         // The size of the center square
         int size;
@@ -38,7 +40,7 @@ class CenterSquareFeatureExtractor : public FeatureExtractor{
 };
 
 
-class Histogram3D : public FeatureExtractor{
+class Histogram3D : public FeatureExtractor<cv::Mat>{
 
     private:
         int numBins;
@@ -94,5 +96,86 @@ class Histogram3D : public FeatureExtractor{
             hist = hist / (image.rows * image.cols);
 
             return hist;
+        }
+};
+
+
+class Histogram2D : public FeatureExtractor<cv::Mat>{
+
+    private:
+        int numBins = 256;
+    public:
+        Histogram2D(int numBins) : numBins(numBins) {}
+
+        /**
+         * Generate a 2D chromaticity histogram of the image (R and G channels).
+         * @param image the input image (CV_8UC3)
+         * @ return the 2D histogram (CV_8U) with dimension (numBins, numBins). Only the top left triangle is filled as the histogram values are normalized such that r+g+b=1
+         */
+        cv::Mat extractFeatures(const cv::Mat& image) override{
+
+
+            // The below code is a modified snippet from Bruce Maxwell's makeHist.cpp demo
+
+
+            cv::Mat hist = cv::Mat::zeros( cv::Size( numBins, numBins ), CV_32FC1 );
+
+            // loop over all pixels
+            for( int i=0;i<image.rows;i++) {
+                const cv::Vec3b *ptr = image.ptr<cv::Vec3b>(i); // pointer to row i
+                for(int j=0;j<image.cols;j++) {
+
+                // get the RGB values
+                float B = ptr[j][0];
+                float G = ptr[j][1];
+                float R = ptr[j][2];
+
+                // compute the r,g chromaticity
+                float divisor = R + G + B;
+                divisor = divisor > 0.0 ? divisor : 1.0; // check for all zeros
+                float r = R / divisor;
+                float g = G / divisor;
+
+                // compute indexes, r, g are in [0, 1]
+                int rindex = (int)( r * (numBins - 1) + 0.5 );
+                int gindex = (int)( g * (numBins - 1) + 0.5 );
+
+                // increment the histogram
+                hist.at<float>(rindex, gindex)++;
+
+                // keep track of the size of the largest bucket (just so we know what it is)
+                float newvalue = hist.at<float>(rindex, gindex);
+                }
+            }
+
+              hist /= (image.rows * image.cols); // normalize the histogram by the number of pixels
+
+            return hist;
+        }
+};
+
+
+class MultiHistogram: public FeatureExtractor<std::vector<cv::Mat>>{
+
+    public:
+
+        /**
+         * Computes a 3D RGB histogram and a 2D chromaticity histogram of the image.
+         * Both are normalized
+         * @param image the input image (CV_8UC3)
+         * @return  a vector of 3D histograms (CV_8U) with dimension (numBins, numBins, numBins)
+         */
+        std::vector<cv::Mat >extractFeatures(const cv::Mat& image) override
+        {
+
+            Histogram2D hist2D(8);
+            Histogram3D hist3D(256);
+
+            std::vector<cv::Mat> histograms;
+            histograms.push_back(hist2D.extractFeatures(image));
+            histograms.push_back(hist3D.extractFeatures(image));
+
+            return histograms;
+
         }
 };

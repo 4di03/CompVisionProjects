@@ -1,18 +1,20 @@
 
 #include <opencv2/opencv.hpp>
 #include <cmath>
-class DistanceMetric
-{
+
+
+template <typename FeatureVectorType>
+class DistanceMetric {
 public: 
     // Compute the distance(double) between two feature vectors (represented as cv::Mat)
     // a smaller distance means the two feature vectors are more similar
-    virtual double distance(const cv::Mat& a, const cv::Mat& b) const = 0;
+    virtual double distance(const FeatureVectorType& a, const FeatureVectorType& b) const = 0;
 
 };
 
 
 
-class SSDDistance : public DistanceMetric
+class SSDDistance : public DistanceMetric<cv::Mat>
 {
 public:
 
@@ -48,14 +50,14 @@ public:
 };
 
 
-class HistogramIntersection : public DistanceMetric
+class HistogramIntersection : public DistanceMetric<cv::Mat>
 {
 public:
 
     /**
-     * Compute the histogram intersection between two feature vectors (3D histograms).
-     * @param a the first feature vector (3D histogram). This should be normalized
-     * @param b the second feature vector (3D histogram). This should be normalized
+     * Compute the histogram intersection between two feature vectors (ND histograms).
+     * @param a the first feature vector (ND histogram). This should be normalized
+     * @param b the second feature vector (ND histogram). This should be normalized
      * 
      */
     double distance(const cv::Mat& a, const cv::Mat& b) const override
@@ -66,27 +68,47 @@ public:
             throw std::invalid_argument("Feature vectors have different sizes");
         }
 
-        // Compute the histogram intersection
-        double intersection = 0;
+        // Compute histogram intersection
+        double intersection = 0.0;
 
-        int size[3] = {a.size[0], a.size[1], a.size[2]};  // Correct way
-        for (int i = 0; i < size[0]; i++)
-        {   
-            for (int j = 0; j < size[1]; j++)
-            {
-                for (int k = 0; k < size[2]; k++)
-                {   
-                    int idx[] = {i, j, k};
-                    float minVal = std::min(a.at<float>(idx), b.at<float>(idx));
-                    intersection += minVal;
-
-                    
-                }
-
-            }
+        // Iterate over all elements in the "flattened" N-dimensional space
+        cv::MatConstIterator_<float> itA = a.begin<float>(), itB = b.begin<float>();
+        cv::MatConstIterator_<float> endA = a.end<float>();
+        for (; itA != endA; ++itA, ++itB) {
+            intersection += std::min(*itA, *itB);
         }
 
+        return 1 - intersection;  // Convert similarity to distance metric
+    }
+};
 
-        return 1 - intersection;
+
+class MultiHistogramIntersection : public DistanceMetric<std::vector<cv::Mat>>
+{
+
+public:
+
+    /**
+     * Compute the summed histogram intersection between two feature vectors (3D histograms).
+     * In this summing, all vectors are weighted equally.
+     * @param a the first feature vector (3D histogram). This should be normalized
+     * @param b the second feature vector (3D histogram). This should be normalized
+     * 
+     */
+    double distance(const std::vector<cv::Mat>& a, const std::vector<cv::Mat>& b) const override
+    {      
+        double distance = 0;
+        HistogramIntersection histIntersection = HistogramIntersection();
+        for(int i = 0; i < a.size(); i++)
+        {
+            if (a[i].size() != b[i].size())
+            {
+                throw std::invalid_argument("Feature vectors have different sizes");
+            }
+            distance += histIntersection.distance(a[i], b[i]);
+
+        }
+
+        return distance;
     }
 };
