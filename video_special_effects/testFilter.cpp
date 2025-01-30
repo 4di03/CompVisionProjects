@@ -4,7 +4,7 @@
  * Jan 24 2025
  * CS 5330 - Project 1, Task 1 : Image Display
  * 
- * This file contains the implementation of a program that reads an image from a file and displays it on the screen.
+ * This file contains the implementation of a program that reads an image from a file, applies a filter to it, and displays the result.
  */
 
 #include <iostream>
