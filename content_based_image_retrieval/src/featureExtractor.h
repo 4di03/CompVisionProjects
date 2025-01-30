@@ -134,7 +134,7 @@ class Histogram3D : public SingleFeatureExtractor{
 class Histogram2D : public SingleFeatureExtractor{
 
     private:
-        int numBins = 256;
+        int numBins = 8;
     public:
         Histogram2D(int numBins) : numBins(numBins) {}
 
@@ -198,9 +198,9 @@ class MultiHistogram: public MultiFeatureExtractor{
          */
         std::vector<cv::Mat> _extractFeatures(const cv::Mat& image) override
         {
-
+            // make both histograms with a 8 bins
             Histogram2D hist2D(8);
-            Histogram3D hist3D(256);
+            Histogram3D hist3D(8);
 
             std::vector<cv::Mat> histograms;
             histograms.push_back(hist2D.extractFeatures(image)[0]);

@@ -80,6 +80,8 @@ int main(int argc, char *argv[]) {
 
     // Extract features from the target image
     cv::Mat targetImage = cv::imread(targetImagePath);
+    std::cout << "Processing target image" << std::endl;
+
     std::vector<cv::Mat> targetFeatures = featureExtractorMethod->extractFeatures(targetImage);
 
     std::vector <std::pair<std::string, double>> imageDistances;
@@ -107,7 +109,6 @@ int main(int argc, char *argv[]) {
 
     // Implicit conversion (creates a copy)
     std::string imgName = imageDBPath + "/" + dp->d_name;
-
 
     double dist = distanceMetricMethod->distance(targetFeatures, featureExtractorMethod->extractFeatures(cv::imread(imgName)));
     

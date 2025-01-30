@@ -32,11 +32,7 @@ public:
                 throw std::invalid_argument("Individual Feature vectors have different sizes");
             }
         }
-        if (a.size() <= 1)
-        {
-            throw std::invalid_argument("Must be single mat");
-        }    
-        
+
         return _distance(a, b);
         
         }
@@ -53,6 +49,7 @@ public:
     // Compute the distance(double) between two feature vectors (represented as cv::Mat)
     // a smaller distance means the two feature vectors are more similar
     double distance(const std::vector<cv::Mat>& a, const std::vector<cv::Mat>& b) const{
+
         if (a.size() != b.size())
         {
             throw std::invalid_argument("Feature vectors have different sizes");
@@ -65,6 +62,7 @@ public:
         {
             throw std::invalid_argument("Must be single mat");
         }    
+
         
         return _distance(a[0], b[0]);
         
@@ -158,11 +156,17 @@ public:
         for(int i = 0; i < a.size(); i++)
 
         {      
+
+   
+
+
             if (a[i].size() != b[i].size())
             {
                 throw std::invalid_argument("Feature vectors have different sizes");
             }
-            distance += histIntersection.distance(a[i], b[i]);
+
+            //  get distance of individual histograms
+            distance += histIntersection._distance(a[i], b[i]);
 
         }
 
