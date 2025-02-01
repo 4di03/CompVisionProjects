@@ -13,38 +13,6 @@
 
 
 
-FeatureExtractor* generateFeatureExtractor(std::string name){
-
-    if (name == "CenterSquare"){
-        return new CenterSquareFeatureExtractor(7);
-    }
-    else if (name == "Histogram3D"){
-        return new Histogram3D(8);
-    }
-    else if (name == "MultiHistogram"){
-        return new MultiHistogram();
-    }
-    else{
-        throw std::invalid_argument("Invalid feature extractor name");
-    }
-}
-DistanceMetric* generateDistanceMetric(std::string name){
-
-    if (name == "SSD"){
-        return new SSDDistance();
-    }
-    else if (name == "HistogramIntersection"){
-        return new HistogramIntersection();
-    }
-    else if (name == "MultiHistogramIntersection"){
-        return new MultiHistogramIntersection();
-    }
-    else{
-        throw std::invalid_argument("Invalid distance metric name");
-    }
-}
-
-
 
 /**
  * Given a target image, a database of images, a method of computing features for an image, 
@@ -75,15 +43,12 @@ int main(int argc, char *argv[]) {
     int numOutputImages = std::stoi(argv[5]);
 
 
-    FeatureExtractor* featureExtractorMethod = generateFeatureExtractor(featureMethod);
-    DistanceMetric* distanceMetricMethod = generateDistanceMetric(distanceMetric);
+    FeatureExtractor* featureExtractorMethod = featureExtractorMap[featureMethod];
+    DistanceMetric* distanceMetricMethod = distanceMetricMap[distanceMetric];
 
     // Extract features from the target image
-    cv::Mat targetImage = cv::imread(targetImagePath);
-    std::cout << "Processing target image" << std::endl;
-
-    std::vector<cv::Mat> targetFeatures = featureExtractorMethod->extractFeatures(targetImage);
-
+    std::vector<cv::Mat> targetFeatures = featureExtractorMethod->extractFeaturesFromFile(targetImagePath);
+    std::cout << "Features extracted" << std::endl;
     std::vector <std::pair<std::string, double>> imageDistances;
 
     // compare with images in the database
@@ -110,7 +75,7 @@ int main(int argc, char *argv[]) {
     // Implicit conversion (creates a copy)
     std::string imgName = imageDBPath + "/" + dp->d_name;
 
-    double dist = distanceMetricMethod->distance(targetFeatures, featureExtractorMethod->extractFeatures(cv::imread(imgName)));
+    double dist = distanceMetricMethod->distance(targetFeatures, featureExtractorMethod->extractFeaturesFromFile(imgName));
     
     imageDistances.push_back(std::make_pair(imgName, dist));
 
@@ -142,7 +107,7 @@ int main(int argc, char *argv[]) {
     mkdir(outputDir.c_str(), 0777);
 
     // save the target image
-    cv::imwrite(outputDir + "/target.jpg", targetImage);
+    cv::imwrite(outputDir + "/target.jpg", cv::imread(targetImagePath));
 
     // save the top N images
     for (int i = 0; i < numOutputImages; i++){

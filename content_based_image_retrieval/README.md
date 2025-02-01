@@ -24,8 +24,11 @@ To run the video display application:
 
 ```
 cd build
-./img_display
+./img_display <target image path> <directory of images path> <method of computing features> <distance metric> <N>
 ```
+Please see the maps in `distanceMetric.h` and `featureExtractor.h` to see what each feature
+and distance method map to.
+
 
 ## Time Travel
 
@@ -33,8 +36,11 @@ No time travel days will be used.
 
 
 ### Todos
-- finish remaining tasks and add results to report
+- finsih resport stuff for 5 and 6 ( may need to make script to streamline comparison)
+- finnish task 7  
+- finish extension
 - clean up comments in teh code, explain reason for std::vector<cv::Mat> return type in comments
 - add headers to each file
-- finish report
+- reread report + code
+- upload stuff then verify submission is good
 

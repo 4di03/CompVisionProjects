@@ -173,3 +173,74 @@ public:
         return distance;
     }
 };
+
+/**
+ * Arccosine function that clamps the input to [-1, 1] to avoid precision errors.
+ * I noticed that sometims the result of a float division is slightly greater than 1, which causes the acos function to return nan.
+ * This function clamps the input to [-1, 1] to avoid this issue.
+ * @param x the input value
+ * @return the arccosine of the input value
+ */
+double safeAcos(double x) {
+    if (x > 1.0) return 0;
+    if (x < -1.0) return M_PI;
+    return acos(x);
+}
+class CosineDistance : public SingleDistanceMetric{
+
+    private:
+
+    /**
+     * Computes 1 - cosine similarity between two feature vectors (1,512) (resnet embeddings).
+     * Uses the formula: 
+     * D = 1 - cos(theta)
+     * 
+     * a.b = |a||b|cos(theta)
+     * theta = arccos(a . b / |a||b|)
+     *
+     * 
+     * @param a the first feature vector (1,512)
+     * @param b the second feature vector (1,512)
+     * @return the cosine distance between the two feature vectors
+     */    
+     double _distance(const cv::Mat& a, const cv::Mat& b) const{
+
+        if (norm(a) == 0 || norm(b) == 0)
+        {
+            std::cerr << "Feature vectors have zero norm" <<std::endl;
+            exit(-1);
+        }
+
+        double tmp = a.dot(b) / (norm(a) * norm(b));
+
+        double theta = safeAcos(tmp);
+
+        if (std::isnan(theta))
+        {
+            // std::cout << "a" << a << std::endl;
+            // std::cout << "b" << b << std::endl;
+            std::cout << "|a|:" << norm(a) << std::endl;
+            std::cout << "|b|:" << norm(b) << std::endl;
+            std::cout << "a . b: " << a.dot(b) << std::endl;
+            std::cout << "|a||b|: " << norm(a) * norm(b) << std::endl;
+
+            std::cout << "a.b/|a||b|: " << tmp << std::endl;
+            std::cout << "Theta: " << theta << std::endl;
+            std::cerr << "Error computing cosine distance" << std::endl;
+            exit(-1);
+        }
+
+        return 1 - cos(theta);
+     }
+
+};
+
+
+
+// Map of distance metrics
+std::map<std::string, DistanceMetric*> distanceMetricMap = {
+    {"SSD", new SSDDistance()},
+    {"HistogramIntersection", new HistogramIntersection()},
+    {"MultiHistogramIntersection", new MultiHistogramIntersection()},
+    {"CosineDistance", new CosineDistance()},
+};
