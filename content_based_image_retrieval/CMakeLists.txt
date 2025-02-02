@@ -14,6 +14,9 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Use strict standard compliance
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-add_executable(img_retrieval src/find_similar_images.cpp src/distanceMetric.h src/featureExtractor.h)
+add_executable(img_retrieval src/get_matches.cpp src/find_similar_images.cpp src/distanceMetric.cpp src/featureExtractor.cpp)
+
+add_executable(compare_methods src/compare_methods.cpp src/distanceMetric.cpp src/featureExtractor.cpp src/find_similar_images.cpp)
 
 target_link_libraries(img_retrieval ${OpenCV_LIBS})
+target_link_libraries(compare_methods ${OpenCV_LIBS})

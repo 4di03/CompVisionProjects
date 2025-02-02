@@ -13,49 +13,34 @@
 
 
 
-
 /**
- * Given a target image, a database of images, a method of computing features for an image, 
- * a distance metric for comparing the image features from two images, and the desired number of output images,
- * this program finds the N most similar images in the database to the target image.
- * It will print the file path of the N most similar images and the distance between the target image and the N most similar images.
- * It will also create a tmp_output directory in the current directory and save the N most similar images(by index) 
- * as well as the target image in the tmp directory.
- * 
- * 
- * @param argc the number of arguments
- * @param argv the arguments. The first is the target image path
- *                            the second is the directory of images path
- *                            the third is the method of computing features as a string
- *                            the fourth is the distance metric as a string
- *                            and the fifth is the number of output images(N).
+ * Gets the top {numOutputImages} images that are most similar to the target image.
+ * @param targetImagePath the path to the target image
+ * @param imageDBPath the path to the directory of images
+ * @param featureMethod the method of computing features for an image
+ * @param distanceMetric the distance metric for comparing the image features from two images
+ * @param numOutputImages the number of output images
+ * @param outputDir the directory to save the output images
+ * @return 0 if the function runs successfully, -1 otherwise
  */
-int main(int argc, char *argv[]) {
-    if (argc != 6){
-        printf("usage: %s <target image path> <directory of images path> <method of computing features> <distance metric> <N>\n", argv[0]);
-        exit(-1);
-    }
-
-    std::string targetImagePath = argv[1];
-    std::string imageDBPath = argv[2];
-    std::string featureMethod = argv[3];
-    std::string distanceMetric = argv[4];
-    int numOutputImages = std::stoi(argv[5]);
-
+int getMatchingImages(const std::string& targetImagePath, const std::string& imageDBPath, const std::string& featureMethod, const std::string& distanceMetric, int numOutputImages, std::string outputDir) {
+    std::cout << "Finding matches for target image: " << targetImagePath << std::endl;
+    std::cout << "Using feature method: " << featureMethod << std::endl;
+    std::cout << "Using distance metric: " << distanceMetric << std::endl;
+    std::cout << "Will output the top " << numOutputImages << " images to: " << outputDir << std::endl;
 
     FeatureExtractor* featureExtractorMethod = featureExtractorMap[featureMethod];
     DistanceMetric* distanceMetricMethod = distanceMetricMap[distanceMetric];
 
     // Extract features from the target image
     std::vector<cv::Mat> targetFeatures = featureExtractorMethod->extractFeaturesFromFile(targetImagePath);
-    std::cout << "Features extracted" << std::endl;
     std::vector <std::pair<std::string, double>> imageDistances;
 
     // compare with images in the database
     DIR* dirp = opendir(imageDBPath.c_str());
     if (dirp == NULL) {
         printf("Cannot open directory %s\n", imageDBPath.c_str());
-        exit(-1);
+        return -1;
     }
     char buffer[256]; // buffer to store the full path name of the image
  // loop over all the files in the image file listing
@@ -98,8 +83,6 @@ int main(int argc, char *argv[]) {
 
     // create a tmp_output directory and save the target image and the top N images
 
-    std::string outputDir = "tmp_output";
-
     // delete the directory if it already exists
     std::string deleteCommand = "rm -rf " + outputDir;
     std::system(deleteCommand.c_str()); 
@@ -118,5 +101,6 @@ int main(int argc, char *argv[]) {
 
 
     return 0;
-
 }
+
+
