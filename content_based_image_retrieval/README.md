@@ -40,8 +40,3 @@ This will create 4 seperate output folders in the `build` directory similar to `
 ## Time Travel
 
 No time travel days will be used.
-
-
-### Todos
-- upload stuff then verify submission is good
-
