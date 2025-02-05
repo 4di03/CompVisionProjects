@@ -27,7 +27,7 @@ cd build
 Please see the maps in `distanceMetric.h` and `featureExtractor.h` to see what each feature
 and distance method map to.
 
-Running this commandwill output the top N matches to a folder of the name `tmp_output` in the `build` directory, where the images are indexed by their index in the ascending-sorted list of matches based on distance.
+Running this command will output the top and bottom N matches to a folder of the name `tmp_output` in the `build` directory, where the images will be indexed according to their position in the ascending-sorted list of matches based on distance.
 
 To compare the 4 key methods + the extension in the report for a given image, run :
 ```
@@ -36,6 +36,8 @@ cd build
 ```
 
 This will create 4 seperate output folders in the `build` directory similar to `tmp_output` above name appropriately for each method.
+
+If you'd like to test the extension seperately, the name of the method is "EdgeUniformity" and the distance metric is "SSD_float"
 
 ## Time Travel
 
