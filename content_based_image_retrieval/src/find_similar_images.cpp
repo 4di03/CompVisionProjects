@@ -97,12 +97,12 @@ int getMatchingImages(const std::string& targetImagePath, const std::string& ima
     // print the top N images
     printf("Top %d images (ascending):\n", numOutputImages);
     for (int i = 0; i < numOutputImages; i++){
-        printf("Image: %s, Distance: %f\n", imageDistances[i].first.c_str(), imageDistances[i].second);
+        printf("Image: %s, Distance: %.10f\n", imageDistances[i].first.c_str(), imageDistances[i].second);
     }
 
     printf("Bottom %d images (ascending):\n", numOutputImages);
     for (int i = imageDistances.size() - numOutputImages; i < imageDistances.size(); i++){
-        printf("Image: %s, Distance: %f\n", imageDistances[i].first.c_str(), imageDistances[i].second);
+        printf("Image: %s, Distance: %.10f\n", imageDistances[i].first.c_str(), imageDistances[i].second);
     }
 
 

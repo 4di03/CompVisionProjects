@@ -17,28 +17,25 @@ int main(int argc, char** argv){
 
     // try all possible methods
 
-    if (getMatchingImages(targetImagePath, imageDBPath, "EdgeUniformity", "SSD", numOutputImages, "sobel_fft_ssd") != 0){
+    if (getMatchingImages(targetImagePath, imageDBPath, "EdgeUniformity", "SSD_float", numOutputImages, "sobel_fft_ssd") != 0){
         std::cerr << "Error running EdgeUniformity and SSD" << std::endl;
-        return -1;
     };
 
     if (getMatchingImages(targetImagePath, imageDBPath, "Histogram3D", "HistogramIntersection", numOutputImages, "rgb_hist") != 0){
         std::cerr << "Error running Histogram3D and HistogramIntersection" << std::endl;
-        return -1;
     };
     if (getMatchingImages(targetImagePath, imageDBPath, "MultiHistogram", "MultiHistogramIntersection", numOutputImages, "rgb_chroma_hist") != 0){
         std::cerr << "Error running MultiHistogram and MultiHistogramIntersection" << std::endl;
-        return -1;
-    };
-    if (getMatchingImages(targetImagePath, imageDBPath, "Resnet", "CosineDistance", numOutputImages, "resnet") != 0){
-        std::cerr << "Error running Resnet and CosineDistance" << std::endl;
-        return -1;
     };
 
     if (getMatchingImages(targetImagePath, imageDBPath, "TextureAndColor", "MultiHistogramIntersection", numOutputImages, "texture_color")!= 0){
         std::cerr << "Error running TextureAndColor and MultiHistogramIntersection" << std::endl;
-        return -1;
     };
+    if (getMatchingImages(targetImagePath, imageDBPath, "Resnet", "CosineDistance", numOutputImages, "resnet") != 0){
+        std::cerr << "Error running Resnet and CosineDistance" << std::endl;
+    };
+
+
 
 
 

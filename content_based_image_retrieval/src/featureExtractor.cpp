@@ -122,7 +122,7 @@ int magnitude( cv::Mat &sx, cv::Mat &sy, cv::Mat &dst ){
             cv::Vec3s pixelY = rowY[j];
 
             // compute the magnitude of the gradient for all 3 channels
-            cv::Vec3b magnitude = cv::Vec3s(sqrt(pixelX[0]*pixelX[0] + pixelY[0]*pixelY[0]),
+            cv::Vec3b magnitude = cv::Vec3b(sqrt(pixelX[0]*pixelX[0] + pixelY[0]*pixelY[0]),
                                             sqrt(pixelX[1]*pixelX[1] + pixelY[1]*pixelY[1]),
                                             sqrt(pixelX[2]*pixelX[2] + pixelY[2]*pixelY[2]));
 
@@ -215,5 +215,5 @@ std::map<std::string, FeatureExtractor*> featureExtractorMap = {
     {"Resnet", new ResnetFeatureExtractor()},
     {"DepthColor", new CompositeFeatureExtractor({new ForegroundExtractor(), new Histogram3D(8, false)})},
     // TODO:
-    {"EdgeUniformity", new CompositeFeatureExtractor({new TextureExtractor(), new FFTExtractor()})},
+    {"EdgeUniformity", new CompositeFeatureExtractor({new TextureExtractor(), new FFTExtractor(true)})},
 };

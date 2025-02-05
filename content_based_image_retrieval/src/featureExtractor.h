@@ -71,6 +71,8 @@ class CenterSquareFeatureExtractor : public SingleFeatureExtractor{
 
         /**
          * Extract the center square of the image with dimensions size x size
+         * @param image the input image (CV_8UC3)
+         * @return the center square of the image (CV_8UC3)
          */
         cv::Mat _extractFeatures(const cv::Mat& image) override
         {
@@ -102,7 +104,7 @@ class Histogram3D : public SingleFeatureExtractor{
          * Extract the 3D histogram of the image, using numBins bins for each channel (RGB).
          * The histogram is normalized so that the sum of all bins is 1.
          * @param image the input image (CV_8UC3)
-         * @return the 3D histogram (CV_8U) with dimension (numBins, numBins, numBins)
+         * @return the 3D histogram (CV_32F) with dimension (numBins, numBins, numBins)
          */
         cv::Mat _extractFeatures(const cv::Mat& image) override
         {
@@ -166,7 +168,7 @@ class Histogram2D : public SingleFeatureExtractor{
         /**
          * Generate a 2D chromaticity histogram of the image (R and G channels).
          * @param image the input image (CV_8UC3)
-         * @ return the 2D histogram (CV_8U) with dimension (numBins, numBins). Only the top left triangle is filled as the histogram values are normalized such that r+g+b=1
+         * @ return the 2D histogram (CV_32F) with dimension (numBins, numBins). Only the top left triangle is filled as the histogram values are normalized such that r+g+b=1
          */
         cv::Mat _extractFeatures(const cv::Mat& image) override{
 
@@ -253,7 +255,7 @@ private:
     /**
      * Computes multiple feature vectors from an image
      * @param image the input image (CV_8UC3)
-     * @return  a vector of 3D histograms (CV_8U) with dimension (numBins, numBins, numBins)
+     * @return  a vector of 3D histograms (CV_32F) with dimension (numBins, numBins, numBins)
      */
     std::vector<cv::Mat> _extractFeatures(const cv::Mat& image) 
     {
@@ -457,10 +459,10 @@ class FFTExtractor : public SingleFeatureExtractor{
     /**
      * Extracts the magnitude of the fourier transform of the image
      * 
-     * Code snipttes here are taken from Bruce Maxwell's fourierTransform.cpp demo
+     * Code snippets here are taken from Bruce Maxwell's fourierTransform.cpp demo
      * 
      * @param image the input image (CV_8UC3)
-     * @return the magnitude of the fourier transform (CV_8U), centered at the origin
+     * @return the magnitude of the fourier transform (CV_32F), centered at the origin
      */
     cv::Mat _extractFeatures(const cv::Mat& image){
         cv::Mat grey;
@@ -482,6 +484,7 @@ class FFTExtractor : public SingleFeatureExtractor{
         // in order to visualize the spectrum, we compute the magnitude of the complex number and take the log
         cv::Mat mag;
         mag.create(fft.size(), CV_32F );
+        float sum = 0;
         // compute the magnitude and the log
         for(int i=0;i<fft.rows;i++) {
             float *data = fft.ptr<float>(i);
@@ -490,10 +493,12 @@ class FFTExtractor : public SingleFeatureExtractor{
             float x = data[j*2];
             float y = data[j*2 + 1];
             mptr[j] = log( 1 + sqrt(x*x + y*y) ); // get the log of the magnitude
+            sum += mptr[j];
             }
         }
+        //normalize the fft magnitude such that the sum of all values is 1
+        mag /= sum;
 
-        cv::normalize( mag, mag, 0, 1, cv::NORM_MINMAX );
 
         // reorganize the quadrants to be centered on the middle of the image
         int cx = mag.cols/2;
@@ -540,7 +545,6 @@ class FFTExtractor : public SingleFeatureExtractor{
         // resize the image to 256x256
         cv::resize(mag, mag, cv::Size(256, 256));
         
-
 
         return mag;
     }

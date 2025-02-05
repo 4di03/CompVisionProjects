@@ -77,33 +77,38 @@ public:
 
 };
 
-
-
+// data type for numbers in the image
+template <typename ImageDataType>
 class SSDDistance : public SingleDistanceMetric
 {
 public:
 
     /**
-     * Compute the sum of squared differences between two feature vectors (3-channel images).
-     * 
+     * Compute the sum of squared differences between two feature vectors (n-dimension images).
+     * @param a the first feature vector (n-channel N-dimension matrix)
+     * @param b the second feature vector (n-channel N-dimension matrix)
      */
     double _distance(const cv::Mat& a, const cv::Mat& b) const override
     {
 
-        // Compute the sum of squared differences
-        double ssd = 0;
-        for (int i = 0; i < a.rows; i++)
-        {   
-            const cv::Vec3b* aRow = a.ptr<cv::Vec3b>(i);
-            const cv::Vec3b* bRow = b.ptr<cv::Vec3b>(i);
-            for (int j = 0; j < a.cols; j++)
-            {
-                int blueDiff = aRow[j][0] - bRow[j][0];
-                int greenDiff = aRow[j][1] - bRow[j][1];
-                int redDiff = aRow[j][2] - bRow[j][2];
-                ssd += blueDiff * blueDiff + greenDiff * greenDiff + redDiff * redDiff;
-            }
+        // Ensure both images have the same dimensions and number of channels
+        if (a.size() != b.size() || a.type() != b.type()) {
+            throw std::invalid_argument("Input matrices must have the same size and type");
         }
+
+        double ssd = 0.0;
+            
+        // Iterate over all elements in the flattened multi-dimensional space
+        cv::MatConstIterator_<ImageDataType> itA = a.begin<ImageDataType>(), itB = b.begin<ImageDataType>();
+        cv::MatConstIterator_<ImageDataType> endA = a.end<ImageDataType>();
+        
+        // take difference of elements along each channel and sum them up
+        for (; itA != endA; ++itA, ++itB) {
+            double diff = static_cast<double>(*itA) - static_cast<double>(*itB);
+            ssd += diff * diff;
+        }
+
+
 
         return ssd;
     }
@@ -214,16 +219,7 @@ class CosineDistance : public SingleDistanceMetric{
 
         if (std::isnan(theta))
         {
-            // std::cout << "a" << a << std::endl;
-            // std::cout << "b" << b << std::endl;
-            std::cout << "|a|:" << norm(a) << std::endl;
-            std::cout << "|b|:" << norm(b) << std::endl;
-            std::cout << "a . b: " << a.dot(b) << std::endl;
-            std::cout << "|a||b|: " << norm(a) * norm(b) << std::endl;
-
-            std::cout << "a.b/|a||b|: " << tmp << std::endl;
-            std::cout << "Theta: " << theta << std::endl;
-            std::cerr << "Error computing cosine distance" << std::endl;
+            std::cout << "Error computing cosine distance" << std::endl;
             exit(-1);
         }
 

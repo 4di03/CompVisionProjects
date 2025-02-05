@@ -20,7 +20,8 @@ double safeAcos(double x) {
 }
 
 std::map<std::string, DistanceMetric*> distanceMetricMap = {
-    {"SSD", new SSDDistance()},
+    {"SSD_uchar", new SSDDistance<uchar>()},
+    {"SSD_float", new SSDDistance<float>()},
     {"HistogramIntersection", new HistogramIntersection()},
     {"MultiHistogramIntersection", new MultiHistogramIntersection()},
     {"CosineDistance", new CosineDistance()},
