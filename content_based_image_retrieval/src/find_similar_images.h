@@ -1,3 +1,11 @@
+/**
+ * Adithya Palle
+ * February 4, 2025
+ * 
+ * 
+ * This is a simple header file that exposes the function getMatchingImages that finds the top N images that are most similar to a target image.
+ * It is used so multiple executables can use this function.
+ */
 #include <iostream>
 #pragma once
 

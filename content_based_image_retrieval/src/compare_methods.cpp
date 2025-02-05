@@ -1,3 +1,9 @@
+/**
+ * Adithya Palle
+ * February 4, 2025
+ * 
+ * This is a script that compares the 4 primary different methods of finding similar images for a given image and dataset.
+ */
 #include "find_similar_images.h"
 #include <iostream>
 
@@ -10,6 +16,12 @@ int main(int argc, char** argv){
 
 
     // try all possible methods
+
+    if (getMatchingImages(targetImagePath, imageDBPath, "EdgeUniformity", "SSD", numOutputImages, "sobel_fft_ssd") != 0){
+        std::cerr << "Error running EdgeUniformity and SSD" << std::endl;
+        return -1;
+    };
+
     if (getMatchingImages(targetImagePath, imageDBPath, "Histogram3D", "HistogramIntersection", numOutputImages, "rgb_hist") != 0){
         std::cerr << "Error running Histogram3D and HistogramIntersection" << std::endl;
         return -1;

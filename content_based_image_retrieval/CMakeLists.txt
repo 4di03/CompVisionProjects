@@ -14,9 +14,20 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Use strict standard compliance
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-add_executable(img_retrieval src/get_matches.cpp src/find_similar_images.cpp src/distanceMetric.cpp src/featureExtractor.cpp)
+#configure depthAnything
+set(DEPTH_ANYTHING_DIR /Users/adithyapalle/work/CS5330/depthAnything)
+set(ONNX_RUNTIME_DIR ${DEPTH_ANYTHING_DIR}/onnxruntime-osx-x86_64-1.20.1)
+include_directories(${ONNX_RUNTIME_DIR}/include)
+link_directories(${ONNX_RUNTIME_DIR}/lib)
 
-add_executable(compare_methods src/compare_methods.cpp src/distanceMetric.cpp src/featureExtractor.cpp src/find_similar_images.cpp)
+message(STATUS "DEPTH_ANYTHING_DIR: ${DEPTH_ANYTHING_DIR}")
 
-target_link_libraries(img_retrieval ${OpenCV_LIBS})
-target_link_libraries(compare_methods ${OpenCV_LIBS})
+include_directories(${DEPTH_ANYTHING_DIR}/da2-code)
+
+
+add_executable(img_retrieval src/get_matches.cpp src/find_similar_images.cpp src/distanceMetric.cpp src/featureExtractor.cpp ${DEPTH_ANYTHING_DIR}/da2-code/DA2Network.hpp)
+
+add_executable(compare_methods src/compare_methods.cpp src/distanceMetric.cpp src/featureExtractor.cpp src/find_similar_images.cpp ${DEPTH_ANYTHING_DIR}/da2-code/DA2Network.hpp)
+
+target_link_libraries(img_retrieval ${OpenCV_LIBS} onnxruntime)
+target_link_libraries(compare_methods ${OpenCV_LIBS} onnxruntime)

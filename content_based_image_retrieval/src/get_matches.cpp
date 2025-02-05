@@ -1,3 +1,10 @@
+/**
+ * Adithya Palle
+ * February 4, 2025
+ * 
+ * This contains the entry point for the program that finds the top N images that are most similar to a target image.
+ */
+
 #include <iostream>
 #include <stdio.h>
 #include <cstdio>

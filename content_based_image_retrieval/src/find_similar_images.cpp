@@ -1,3 +1,9 @@
+/**
+ * Adithya Palle
+ * February 4, 2025
+ * 
+ * This file is an implementation of the function that finds the top N images that are most similar to a target image.
+ */
 
 #include <iostream>
 #include <stdio.h>
@@ -24,6 +30,19 @@
  * @return 0 if the function runs successfully, -1 otherwise
  */
 int getMatchingImages(const std::string& targetImagePath, const std::string& imageDBPath, const std::string& featureMethod, const std::string& distanceMetric, int numOutputImages, std::string outputDir) {
+
+    // check for valid feature method
+    if (featureExtractorMap.find(featureMethod) == featureExtractorMap.end()){
+        std::cerr << "Invalid feature method: " << featureMethod << std::endl;
+        return -1;
+    }
+
+    // check for valid distance metric
+    if (distanceMetricMap.find(distanceMetric) == distanceMetricMap.end()){
+        std::cerr << "Invalid distance metric: " << distanceMetric << std::endl;
+        return -1;
+    }
+
     std::cout << "Finding matches for target image: " << targetImagePath << std::endl;
     std::cout << "Using feature method: " << featureMethod << std::endl;
     std::cout << "Using distance metric: " << distanceMetric << std::endl;
@@ -76,7 +95,13 @@ int getMatchingImages(const std::string& targetImagePath, const std::string& ima
     });
 
     // print the top N images
+    printf("Top %d images (ascending):\n", numOutputImages);
     for (int i = 0; i < numOutputImages; i++){
+        printf("Image: %s, Distance: %f\n", imageDistances[i].first.c_str(), imageDistances[i].second);
+    }
+
+    printf("Bottom %d images (ascending):\n", numOutputImages);
+    for (int i = imageDistances.size() - numOutputImages; i < imageDistances.size(); i++){
         printf("Image: %s, Distance: %f\n", imageDistances[i].first.c_str(), imageDistances[i].second);
     }
 
@@ -89,12 +114,26 @@ int getMatchingImages(const std::string& targetImagePath, const std::string& ima
 
     mkdir(outputDir.c_str(), 0777);
 
+    mkdir((outputDir + "/top").c_str(), 0777);
+    mkdir((outputDir + "/bottom").c_str(), 0777);
+
+    
     // save the target image
     cv::imwrite(outputDir + "/target.jpg", cv::imread(targetImagePath));
 
     // save the top N images
     for (int i = 0; i < numOutputImages; i++){
-        cv::imwrite(outputDir + "/output_" + std::to_string(i) + ".jpg", cv::imread(imageDistances[i].first));
+        std::string saveDir = outputDir + "/top/output_" + std::to_string(i) + ".jpg";
+        cv::imwrite(saveDir, cv::imread(imageDistances[i].first));
+    }
+
+    // save the bottom N images
+
+    for (int i = imageDistances.size() - numOutputImages; i < imageDistances.size(); i++){
+
+        std::string saveDir = outputDir + "/bottom/output_" + std::to_string(i) + ".jpg";
+
+        cv::imwrite(saveDir, cv::imread(imageDistances[i].first));
     }
 
     

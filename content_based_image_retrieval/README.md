@@ -22,7 +22,7 @@ To run the matching application:
 
 ```
 cd build
-./get_matches <target image path> <directory of images path> <method of computing features> <distance metric> <N>
+./img_retrieval <target image path> <directory of images path> <method of computing features> <distance metric> <N>
 ```
 
 Please see the maps in `distanceMetric.h` and `featureExtractor.h` to see what each feature
@@ -44,9 +44,8 @@ No time travel days will be used.
 
 
 ### Todos
-- finsih resport stuff for 5 and 6 ( may need to make script to streamline comparison)
-- finnish task 7  
-- finish extension
+- finish task 7  (depth anything + texture + 3d color for dino matching)
+- finish extension (sobel grad + 2d FFT feature extractor -> edge uniformity distance metric *use gpt ideas)
 - clean up comments in teh code, explain reason for std::vector<cv::Mat> return type in comments
 - add headers to each file
 - reread report + code

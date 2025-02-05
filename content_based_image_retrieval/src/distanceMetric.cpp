@@ -1,3 +1,9 @@
+/**
+ * Adithya Palle
+ * February 4, 2025
+ * 
+ * Header that implements supporting functions for distance metrics, as well as a map of strings to distance metrics.
+ */
 
 #include "distanceMetric.h"
 /**
@@ -18,4 +24,5 @@ std::map<std::string, DistanceMetric*> distanceMetricMap = {
     {"HistogramIntersection", new HistogramIntersection()},
     {"MultiHistogramIntersection", new MultiHistogramIntersection()},
     {"CosineDistance", new CosineDistance()},
+    {"IOU", new IOU()},
 };

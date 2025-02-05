@@ -1,6 +1,14 @@
+
+/**
+ * Adithya Palle,
+ * February 4, 2025
+ * 
+ * This file is an implementation of various supporting functions for feature extraction.
+ * This includes various filtering methods, depth extraction, and reading embeddings from a file.
+ */
 #include "featureExtractor.h"
 #include <fstream>  
-
+#define DEPTH_ANYTHING_MODEL_PATH "/Users/adithyapalle/work/CS5330/depthAnything/da2-code/model_fp16.onnx"
 
 /**
  * Applies a separable filter to the image.
@@ -179,12 +187,33 @@ cv::Mat readEmbeddingsFromFile(std::string resnetEmbeddingsFilePath, std::string
     exit(-1);
 
 }
+/**
+ * Gets depth values in range [0,255] from the input image. 0 represents the closest object and 255 represents the furthest object.
+ * 
+ * @param src The source image.
+ * @param dst The destination single channel mat.
+ * 
+ * @returns 0 if the operation was successful, -1 otherwise.
+ */
+int getDepthValues(const cv::Mat&src, cv::Mat &dst){
+    // initalize the network once
+    static   DA2Network da_net(DEPTH_ANYTHING_MODEL_PATH);
+    // scale according to the smaller dimension
+    float scale_factor = 256.0 / (src.rows > src.cols ? src.cols : src.rows);
+    da_net.set_input( src, scale_factor );
+    da_net.run_network( dst, src.size() );
 
-
+    return 0;
+}
+CompositeFeatureExtractor* textureHistogram = new CompositeFeatureExtractor({new TextureExtractor(), new Histogram3D(8, true)});
+CompositeFeatureExtractor* noBlackTextureHistogram = new CompositeFeatureExtractor({new TextureExtractor(), new Histogram3D(8, false)});
 std::map<std::string, FeatureExtractor*> featureExtractorMap = {
     {"CenterSquare", new CenterSquareFeatureExtractor(7)},
     {"Histogram3D", new Histogram3D(8)},
     {"MultiHistogram", new MultiFeatureExtractor({new Histogram2D(8), new Histogram3D(8)})},
-    {"TextureAndColor", new MultiFeatureExtractor({new Histogram3D(8), new TextureExtractor(8)})},
+    {"TextureAndColor", new MultiFeatureExtractor({new Histogram3D(8), textureHistogram})},
     {"Resnet", new ResnetFeatureExtractor()},
+    {"DepthColor", new CompositeFeatureExtractor({new ForegroundExtractor(), new Histogram3D(8, false)})},
+    // TODO:
+    {"EdgeUniformity", new CompositeFeatureExtractor({new TextureExtractor(), new FFTExtractor()})},
 };

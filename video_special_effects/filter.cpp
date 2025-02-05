@@ -10,10 +10,11 @@
 #include "faceDetect/faceDetect.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
-#include "depthAnything/da2-code/DA2Network.hpp"
+#include "DA2Network.hpp"
 #include <cmath>
 #define SWIRL_FALLOFF 5 // increasing this value will weaken the swirl effect the further from the cneter of the face
 #define MAX_SWIRL (M_PI)
+#define DEPTH_ANYTHING_MODEL_PATH "/Users/adithyapalle/work/CS5330/depthAnything/da2-code/model_fp16.onnx"
 
 template <typename PixelType>
 class Filter{
@@ -539,7 +540,7 @@ int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels ){
  */
 int getDepthValues(cv::Mat&src, cv::Mat &dst){
     // initalize the network once
-    static   DA2Network da_net( "depthAnything/da2-code/model_fp16.onnx" );
+    static   DA2Network da_net( DEPTH_ANYTHING_MODEL_PATH );
     // scale according to the smaller dimension
     float scale_factor = 256.0 / (src.rows > src.cols ? src.cols : src.rows);
     scale_factor = scale_factor > 1.0 ? 1.0 : scale_factor;
@@ -604,7 +605,7 @@ int applyToForeground(cv::Mat &src, cv::Mat &dst, int threshold, int (*processin
         cv::Vec3b* dstRow = dst.ptr<cv::Vec3b>(i);
         uchar* depthRow = depthImage.ptr<uchar>(i);
         for (int j = 0; j < dst.cols; j++){
-            // if the thing is further away, restore the original pixel
+            // if the thing is closer, restore the original pixel
             if (depthRow[j] < threshold){
                 dstRow[j] = srcRow[j];
 

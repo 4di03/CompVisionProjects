@@ -1,3 +1,9 @@
+/*
+  Adithya Palle
+  February 4, 2025
+
+  Header exposing various distance metrics for comparing feature vectors, as well as a map of strings to distance metrics.\
+  */
 
 #include <opencv2/opencv.hpp>
 #include <cmath>
@@ -125,6 +131,8 @@ public:
         // Compute histogram intersection
         double intersection = 0.0;
 
+
+
         // Iterate over all elements in the "flattened" N-dimensional space
         cv::MatConstIterator_<float> itA = a.begin<float>(), itB = b.begin<float>();
         cv::MatConstIterator_<float> endA = a.end<float>();
@@ -224,6 +232,41 @@ class CosineDistance : public SingleDistanceMetric{
 
 };
 
+
+class IOU : public SingleDistanceMetric{
+
+    private:
+        /**
+         * Computes the intersection over union between two feature vectors (histograms).
+         * @param a the first feature vector (histogram)
+         * @param b the second feature vector (histogram)
+         * @return 1 - the intersection over union between the two feature vectors, which is a distance metric as 0 implies intersection == union which means a perfect match.
+         */
+        double _distance(const cv::Mat& a, const cv::Mat& b) const override{
+                    // Check if the two feature vectors have the same size
+        if (a.size() != b.size())
+        {
+            throw std::invalid_argument("Feature vectors have different sizes");
+        }
+
+        double intersection = 0.0;
+        double unionArea = 0.0;
+
+
+
+        // Iterate over all elements in the "flattened" N-dimensional space
+        cv::MatConstIterator_<float> itA = a.begin<float>(), itB = b.begin<float>();
+        cv::MatConstIterator_<float> endA = a.end<float>();
+        for (; itA != endA; ++itA, ++itB) {
+            intersection += std::min(*itA, *itB);
+            unionArea += std::max(*itA, *itB);
+        }
+
+        return 1 - (intersection/unionArea);  // Convert similarity to distance metric
+        }
+
+
+};
 
 
 // Map of distance metrics
