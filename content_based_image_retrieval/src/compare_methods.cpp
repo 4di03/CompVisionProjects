@@ -7,7 +7,12 @@
 #include "find_similar_images.h"
 #include <iostream>
 
-
+/**
+ * Main function that runs the comparison of the different methods of finding similar images.
+ * 
+ * @param argc the number of arguments
+ * @param argv the arguments. The first argument is the path to the target image, the second argument is the path to the image database, and the third argument is the number of output images to display.
+ */
 int main(int argc, char** argv){
 
     std::string targetImagePath = argv[1];

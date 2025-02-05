@@ -15,7 +15,11 @@
  * 
  * if K is a seperable filter, then K = V * H where H and V are 1D filters.
  * This function then does V*(H*src)  which is equivalent to K*src by the associative and commutative properties of convolution.
- * 
+ * @param src the source image
+ * @param dst the destination image
+ * @param verticalFilter the vertical filter (V)
+ * @param horizontalFilter the horizontal filter (H)
+ * @returns 0 if the operation was successful, -1 otherwise.
  */
 int applySeparableFilter(const cv::Mat& src, cv::Mat& dst, std::vector<float>& verticalFilter, std::vector<float>& horizontalFilter){
     if (horizontalFilter.size() %2 != 1 || verticalFilter.size() %2 != 1){
@@ -75,7 +79,9 @@ int applySeparableFilter(const cv::Mat& src, cv::Mat& dst, std::vector<float>& v
 }
 /**
  * Appies a 3x3 sobel X filter to the image to highlight vertical edges.
- * 
+ * @param src the source image
+ * @param dst the destination image
+ * @returns 0 if the operation was successful, -1 otherwise.
  */
 int sobelX3x3( const cv::Mat &src,  cv::Mat &dst ){
     std::vector<float> vert = {0.25,0.5,0.25};
@@ -85,7 +91,9 @@ int sobelX3x3( const cv::Mat &src,  cv::Mat &dst ){
 
 /**
  * Appies a 3x3 sobel Y filter to the image to highlight horizontal edges.
- * 
+ * @param src the source image
+ * @param dst the destination image
+ * @returns 0 if the operation was successful, -1 otherwise.
  */
 int sobelY3x3( const cv::Mat &src,  cv::Mat &dst ){
     std::vector<float> vert = {0.5,0,-0.5};
@@ -142,6 +150,7 @@ int magnitude( cv::Mat &sx, cv::Mat &sy, cv::Mat &dst ){
  * Loads the embeddings (1,512) mat from the csv files which contains the resnet embeddings for each image.
  * @param resnetEmbeddingsFilePath the path to the csv file containing the resnet embeddings
  * @param imagePath the path to the image file
+ * @return the resnet embeddings for the image
  */
 cv::Mat readEmbeddingsFromFile(std::string resnetEmbeddingsFilePath, std::string imagePath){
     // get filename from path
@@ -207,6 +216,8 @@ int getDepthValues(const cv::Mat&src, cv::Mat &dst){
 }
 CompositeFeatureExtractor* textureHistogram = new CompositeFeatureExtractor({new TextureExtractor(), new Histogram3D(8, true)});
 CompositeFeatureExtractor* noBlackTextureHistogram = new CompositeFeatureExtractor({new TextureExtractor(), new Histogram3D(8, false)});
+
+// Map of feature extractors
 std::map<std::string, FeatureExtractor*> featureExtractorMap = {
     {"CenterSquare", new CenterSquareFeatureExtractor(7)},
     {"Histogram3D", new Histogram3D(8)},
@@ -214,6 +225,5 @@ std::map<std::string, FeatureExtractor*> featureExtractorMap = {
     {"TextureAndColor", new MultiFeatureExtractor({new Histogram3D(8), textureHistogram})},
     {"Resnet", new ResnetFeatureExtractor()},
     {"DepthColor", new CompositeFeatureExtractor({new ForegroundExtractor(), new Histogram3D(8, false)})},
-    // TODO:
     {"EdgeUniformity", new CompositeFeatureExtractor({new TextureExtractor(), new FFTExtractor(true)})},
 };

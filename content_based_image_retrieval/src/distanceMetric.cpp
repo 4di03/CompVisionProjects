@@ -19,6 +19,7 @@ double safeAcos(double x) {
     return acos(x);
 }
 
+// Map of distance metrics
 std::map<std::string, DistanceMetric*> distanceMetricMap = {
     {"SSD_uchar", new SSDDistance<uchar>()},
     {"SSD_float", new SSDDistance<float>()},

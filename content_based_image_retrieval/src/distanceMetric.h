@@ -2,22 +2,28 @@
   Adithya Palle
   February 4, 2025
 
-  Header exposing various distance metrics for comparing feature vectors, as well as a map of strings to distance metrics.\
+  Header exposing various distance metrics for comparing feature vectors, as well as a map of strings to distance metrics.
   */
 
 #include <opencv2/opencv.hpp>
 #include <cmath>
 #pragma once
 
+/**
+ * Interface for computing the distance between two feature vectors.
+ */
 class DistanceMetric {
 public: 
     // Compute the distance(double) between two feature vectors (represented as cv::Mat)
     // a smaller distance means the two feature vectors are more similar
+    // we take in a vector of cv::Mat as the feature vectors can be one or more
     virtual double distance(const std::vector<cv::Mat>& a, const std::vector<cv::Mat>& b) const = 0;
 
 };
 
-
+/**
+ * Interface for computing the distance between multiple feature vectors.
+ */
 class MultipleDistanceMetric : public DistanceMetric {
 private:
 
@@ -46,6 +52,9 @@ public:
 
 };
 
+/**
+ * Interface for computing the distance between two feature vectors.
+ */
 class SingleDistanceMetric : public DistanceMetric {
 private:
 
@@ -77,8 +86,8 @@ public:
 
 };
 
-// data type for numbers in the image
-template <typename ImageDataType>
+
+template <typename ImageDataType>// data type for numbers in the image
 class SSDDistance : public SingleDistanceMetric
 {
 public:
@@ -123,7 +132,7 @@ public:
      * Compute the histogram intersection between two feature vectors (ND histograms).
      * @param a the first feature vector (ND histogram). This should be normalized
      * @param b the second feature vector (ND histogram). This should be normalized
-     * 
+     * @return the histogram intersection between the two feature vectors
      */
     double _distance(const cv::Mat& a, const cv::Mat& b) const override
     {
@@ -133,9 +142,7 @@ public:
             throw std::invalid_argument("Feature vectors have different sizes");
         }
 
-        // Compute histogram intersection
         double intersection = 0.0;
-
 
 
         // Iterate over all elements in the "flattened" N-dimensional space
@@ -160,7 +167,7 @@ public:
      * In this summing, all vectors are weighted equally.
      * @param a the first feature vector (3D histogram). This should be normalized
      * @param b the second feature vector (3D histogram). This should be normalized
-     * 
+     * @returns the summed histogram intersection between the two feature vectors
      */
     double _distance(const std::vector<cv::Mat>& a, const std::vector<cv::Mat>& b) const override
     {      
@@ -188,6 +195,7 @@ public:
 };
 
 double safeAcos(double x);
+
 class CosineDistance : public SingleDistanceMetric{
 
     private:

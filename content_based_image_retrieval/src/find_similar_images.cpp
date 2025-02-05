@@ -43,6 +43,7 @@ int getMatchingImages(const std::string& targetImagePath, const std::string& ima
         return -1;
     }
 
+    // logging
     std::cout << "Finding matches for target image: " << targetImagePath << std::endl;
     std::cout << "Using feature method: " << featureMethod << std::endl;
     std::cout << "Using distance metric: " << distanceMetric << std::endl;

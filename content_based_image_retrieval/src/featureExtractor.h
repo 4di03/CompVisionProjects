@@ -27,14 +27,16 @@ int magnitude( cv::Mat &sx, cv::Mat &sy, cv::Mat &dst );
 cv::Mat readEmbeddingsFromFile(std::string resnetEmbeddingsFilePath, std::string imagePath);
 
 
-
+/**
+ * Interface for extracting features from an image.
+ */
 class FeatureExtractor {
 
 public:
-    // Extract features from an image (cv::Mat) into a feature vector (cv::Mat)
+    // Extract features from an image (cv::Mat) into a feature vector (we use a vector of cv::Mat to allow an approach to produce on or more feature vectors)
     virtual std::vector<cv::Mat> extractFeatures(const cv::Mat& image) = 0;
 
-    // Extract features from the path to an image file (std::string) into a feature vector (cv::Mat)
+    // Extract features from the path to an image file (std::string) into a feature vector 
     virtual std::vector<cv::Mat> extractFeaturesFromFile(const std::string& imagePath){
         cv::Mat image = cv::imread(imagePath);
         return extractFeatures(image);
@@ -367,6 +369,7 @@ class ResnetFeatureExtractor : public FeatureExtractor{
                 exit(-1);
             }
             std::string line;
+            // iterate over each line in the file
             while (std::getline(file, line)) {
                 std::stringstream ss(line);
                 std::string value;
@@ -403,7 +406,7 @@ class ResnetFeatureExtractor : public FeatureExtractor{
 
 
         /**
-         * Unimplemented method
+         * Unimplemented method since we are not extracting features from the image directly
          */
         std::vector<cv::Mat> extractFeatures(const cv::Mat& image) override
         {
@@ -457,12 +460,12 @@ class FFTExtractor : public SingleFeatureExtractor{
         FFTExtractor(bool isolateHighFrequency = true) : isolateHighFrequency(isolateHighFrequency) {}
 
     /**
-     * Extracts the magnitude of the fourier transform of the image
+     * Extracts the log-scaled magnitude of the fourier transform of the image
      * 
      * Code snippets here are taken from Bruce Maxwell's fourierTransform.cpp demo
      * 
      * @param image the input image (CV_8UC3)
-     * @return the magnitude of the fourier transform (CV_32F), centered at the origin
+     * @return the log-scaled magnitude of the fourier transform (CV_32F), centered at the middle of the image
      */
     cv::Mat _extractFeatures(const cv::Mat& image){
         cv::Mat grey;
