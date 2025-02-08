@@ -15,9 +15,12 @@ find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 
-add_executable(image_or image_or.cpp thresholding.cpp)
-add_executable(real_time_or real_time_or.cpp thresholding.cpp)
 
+add_executable(image_or image_or.cpp thresholding.cpp kmeans.cpp)
+add_executable(image_dir_or image_dir_or.cpp thresholding.cpp kmeans.cpp)
+add_executable(real_time_or real_time_or.cpp thresholding.cpp kmeans.cpp)
+
+target_link_libraries(image_dir_or ${OpenCV_LIBS})
 target_link_libraries(image_or ${OpenCV_LIBS})
 target_link_libraries(real_time_or ${OpenCV_LIBS})
 
