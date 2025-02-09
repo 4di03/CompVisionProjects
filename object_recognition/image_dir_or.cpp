@@ -65,7 +65,7 @@ int main(int argc, char** argv){
             std::cout << "Error: Image not found" << std::endl;
             return -1;
         }
-        cv::Mat mask = getObjectMask(image);
+        cv::Mat mask = segmentObjects(image);
         std::string outputName = "output/" + std::string(dp->d_name) ;
         printf("Writing to %s\n", outputName.c_str());
         cv::imwrite(outputName, mask);

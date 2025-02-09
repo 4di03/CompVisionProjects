@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 project(ObjectRecognition)
 
 # turn on debug mode
-# set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Debug)
 
 # Set C++ Standard
 set(CMAKE_CXX_STANDARD 17)   # Change to 14, 17, or 20 as needed

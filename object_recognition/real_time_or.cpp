@@ -34,7 +34,7 @@
         }
 
         cv::imshow("Video", rawFrame);
-        cv::Mat thresholdedFrame = getObjectMask(rawFrame);
+        cv::Mat thresholdedFrame = segmentObjects(rawFrame);
         cv::imshow("Thresholded Frame", thresholdedFrame);
 
         // see if there is a waiting keystroke

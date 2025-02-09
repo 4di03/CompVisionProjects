@@ -8,5 +8,5 @@
 #include <opencv2/opencv.hpp>
 
 // function that produces thresholded image for task 1 where the object's pixels are white and the background is black
-cv::Mat getObjectMask(const cv::Mat& image);
+cv::Mat segmentObjects(const cv::Mat& image);
 

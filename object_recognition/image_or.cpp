@@ -30,7 +30,7 @@ int main(int argc, char** argv){
         return -1;
     }
 
-    cv::Mat objectMask = getObjectMask(image);
+    cv::Mat objectMask = segmentObjects(image);
 
     cv::imshow("Original Image", image);
     cv::imshow("Object Mask", objectMask);

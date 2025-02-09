@@ -8,8 +8,9 @@
 #include "thresholding.h"
 #include "kmeans.h"
 #define NUM_MEANS 5 // number of means to use for kmeans in ISODATA
-#define SATURATION_THRESHOLD // threshold for saturation increase
-
+#define SATURATION_THRESHOLD 100 // saturation threshold for darkening saturated areas
+#define NUM_EROSION_ITERATIONS 1
+#define NUM_DILATION_ITERATIONS 5
 /**
  * Run the ISODATA algorithm on the given image to find the pixel in between the two dominant color means.
  * The algorithm runs kmeans with k = NUM_MEANS to get the NUM_MEANS means,  and then pick the value in between the two colors with lowest overall brightness
@@ -41,13 +42,13 @@ cv::Vec3b isodata(const cv::Mat& image){
 
 }
 /**
- * Increases the saturation for already saturated areas of the image, making more colorful areas vibrant
+ * Darkens saturated areas in the image, seperating the foreground from the background.
  * 
  * @param image The image to increase the saturation of (3 channel uchar image).
  * @param brightnessFactor The factor to change the brightness by.
  * @return a new image with the saturation increased.
  */
-cv::Mat increaseSaturation(const cv::Mat& image, float brightnessFactor){
+cv::Mat darkenSaturatedAreas(const cv::Mat& image, float brightnessFactor){
     cv::Mat saturated;
     cv::Mat hsvImage;
     cv::cvtColor(image, hsvImage, cv::COLOR_BGR2HSV);  // Convert to HSV
@@ -62,11 +63,9 @@ cv::Mat increaseSaturation(const cv::Mat& image, float brightnessFactor){
         unsigned char* rowS = S.ptr<unsigned char>(i);
         unsigned char* rowV = V.ptr<unsigned char>(i);
         for (int j = 0; j < image.cols; j++) {
-            if (rowS[j]> 100) {  // Only modify dark pixels
+            if (rowS[j]> SATURATION_THRESHOLD) {  // Only modify dark pixels
                 int newValue = rowV[j] * brightnessFactor;
-                rowV[j] = 255;//rowV[j] * brightnessFactor; // Clamp to 255
-            }else{
-                rowV[j] = 0;
+                rowV[j] = newValue;
             }
         }
     }
@@ -79,19 +78,187 @@ cv::Mat increaseSaturation(const cv::Mat& image, float brightnessFactor){
     return saturated;
 }
 
+
+/**
+ * Applies opening (erosion followed by dilation) to the mask to remove noise.
+ * @param mask The mask to dilate (1 channel uchar image).
+ * @return The processed (eroded and then dilated) mask (1 channel uchar image).
+ */
+cv::Mat cleanup(const cv::Mat& mask){
+    cv::Mat dilated = mask.clone();
+
+    // Define a 4-connected structuring element (cross-shaped kernel)
+    cv::Mat erosionKernel = (cv::Mat_<uchar>(3,3) <<
+    0, 1, 0,
+    1, 1, 1,
+    0, 1, 0);  
+
+    for (int i = 0; i < NUM_EROSION_ITERATIONS; i++){
+        cv::erode(dilated, dilated, erosionKernel);
+    }
+
+    // Define a 8-connected structuring element (cross-shaped kernel)
+    cv::Mat dilationKernel = (cv::Mat_<uchar>(3,3) <<
+    1, 1, 1,
+    1, 1, 1,
+    1, 1, 1);  
+    for (int i = 0; i < NUM_DILATION_ITERATIONS; i++){
+        cv::dilate(dilated, dilated, dilationKernel);
+    }
+    return dilated;
+
+}
+
+/**
+ * Checks if two pixels are equal.
+ * @param a The first pixel.
+ * @param b The second pixel.
+ * @return True if the pixels are equal, false otherwise.
+ */
+bool pixelsEqual(const cv::Vec3b& a, const cv::Vec3b& b){
+    return a[0] == b[0] && a[1] == b[1] && a[2] == b[2];
+}
+
+/**
+ * Depth first search to color the connected components of the mask. Sets the color in colored of the connected component to the given color.
+ * DFS is implemented iteratively to avoid stack overflow.
+ * @param colored The image to color the connected components of (3 channel uchar image). Originally , it is black and white, but we go through and color the white regions with region colors.
+ * @param loc The location of the pixel to start the DFS at. (i,j)
+ * @param color The color to color the connected component.
+ */
+void dfs(cv::Mat& colored, std::pair<int,int> loc, cv::Vec3b& color){
+
+    // make a stack to keep track of the neighbors to color
+    std::stack<std::pair<int,int>> stack;
+    stack.push(loc);
+
+    while (!stack.empty()){
+        std::pair<int,int> loc = stack.top();
+        stack.pop(); // returns void
+        int i = loc.first;
+        int j = loc.second;
+        // check that the pixel is white (meaning it is in the mask and has not already been colored/tinted)
+        if ( ! pixelsEqual(colored.at<cv::Vec3b>(i, j) ,cv::Vec3b(255,255,255))){
+            continue;
+        }
+    
+        // check that the pixel is in bounds
+        if (i < 0 || i >= colored.rows || j < 0 || j >= colored.cols){
+            continue;
+        }
+    
+
+        // color the pixel
+        colored.at<cv::Vec3b>(i,j) = color;
+
+
+        // try and color neighbors if they are connected
+        for (int k = -1; k <= 1; k++){
+            for (int l = -1; l <= 1; l++){
+                if (k == 0 && l == 0){ // no point in coloring the same pixel
+                    continue;
+                }
+                stack.push(std::pair<int,int>(i+k, j+l));
+            }
+        }
+        }
+
+    return;
+}
+
+/**
+ * Creates a segmentaiton where each unique masked foreground region is colored differently.
+ * Regions are considered connected if there is an adjacent foreground pixel in 8 directions.
+ * 
+ * 
+ * @param image The image to segment (3 channel uchar image).
+ * @param mask The mask of the object in the image (1 channel uchar image).
+ * @return The image with the connected components colored differently (3 channel uchar image).
+ */
+cv::Mat colorConnectedComponents(const cv::Mat& image, const cv::Mat& mask){
+    if (image.empty() || mask.empty()){
+        std::cout << "Error: Image or mask is empty" << std::endl;
+        exit(-1);
+    }
+    if (image.rows != mask.rows || image.cols != mask.cols){
+        std::cout << "Error: Image and mask are not the same size" << std::endl;
+        exit(-1);
+    }
+
+    if (image.channels() != 3){
+        std::cout << "Error: Image is not 3 channel" << std::endl;
+        exit(-1);
+    }
+    if (mask.channels() != 1){
+        std::cout << "Error: Mask is not 1 channel" << std::endl;
+        exit(-1);
+    }
+
+
+    cv::Mat colored; 
+    // convert to greyscale to BGR
+    cv::cvtColor(mask, colored, cv::COLOR_GRAY2BGR);
+
+
+
+    // initalize a set of seen colors to keep track of which colors have been used
+    std::set<std::tuple<int,int,int>> seenColors;
+
+    for (int i = 0; i< image.rows; i++){
+        cv::Vec3b* coloredRow = colored.ptr<cv::Vec3b>(i);
+        const cv::Vec3b* imageRow = image.ptr<cv::Vec3b>(i);
+        const unsigned char* maskRow = mask.ptr<unsigned char>(i);
+        for (int j = 0; j < image.cols; j++){
+
+
+            int c1 = rand() % 256;
+            int c2 = rand() % 256;
+            int c3 = rand() % 256;
+            std::tuple<int,int,int> colorVals = std::make_tuple(c1,c2,c3);
+            while (seenColors.find(colorVals) != seenColors.end()){ // to make sure we don't use the same color twice
+                int c1 = rand() % 256;
+                int c2 = rand() % 256;
+                int c3 = rand() % 256;
+                colorVals = std::make_tuple(c1,c2,c3);
+            }
+            
+            seenColors.insert(colorVals);
+            cv::Vec3b color = cv::Vec3b(c1,c2,c3);
+
+
+            // color the pixels (will return right away if the pixel is not in the mask or has already been colored)
+            dfs(colored, std::pair<int,int>(i,j), color);
+
+            // tint the pixel if it is in the mask
+            if (maskRow[j] == 255){
+                coloredRow[j] = imageRow[j] * 0.5 + coloredRow[j] * 0.5; 
+            }else{
+                // if not in the foreground, just copy the pixel
+                coloredRow[j] = imageRow[j];
+            }
+
+
+        }
+    }
+
+    return colored;
+
+}
+
+
+
 /**
  * Get the mask of the object in the image using ISODATA to threshold the image based on the two dominant colors.
  * 
  * @param image The image to get the object mask of (3 channel uchar image).
  * @return The mask of the object in the image (1 channel uchar image).
  */
-cv::Mat getObjectMask(const cv::Mat& image){
+cv::Mat segmentObjects(const cv::Mat& image){
     if (image.empty()){
         std::cout << "Error: Image is empty" << std::endl;
         exit(-1);
     }
-    // skipping saturation because it seems to make isodata algorithm obsolete
-    cv::Mat processedImage = image; //increaseSaturation(image, 0.01);
+    cv::Mat processedImage =darkenSaturatedAreas(image, 0.01);
 
     // get the pixel in between the two dominant color values
     cv::Vec3b meanPixel = isodata(processedImage);
@@ -109,5 +276,9 @@ cv::Mat getObjectMask(const cv::Mat& image){
         }
     }
 
-    return mask;
+    mask = cleanup(mask);
+
+    cv::Mat segmented = colorConnectedComponents(image, mask);
+
+    return segmented;
 }
