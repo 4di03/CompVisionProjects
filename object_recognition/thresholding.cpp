@@ -7,6 +7,7 @@
  */
 #include "thresholding.h"
 #include "kmeans.h"
+#include <iostream>
 #define NUM_MEANS 5 // number of means to use for kmeans in ISODATA
 #define SATURATION_THRESHOLD 100 // saturation threshold for darkening saturated areas
 #define NUM_EROSION_ITERATIONS 1
@@ -120,13 +121,12 @@ bool pixelsEqual(const cv::Vec3b& a, const cv::Vec3b& b){
 }
 
 /**
- * Depth first search to color the connected components of the mask. Sets the color in colored of the connected component to the given color.
- * DFS is implemented iteratively to avoid stack overflow.
- * @param colored The image to color the connected components of (3 channel uchar image). Originally , it is black and white, but we go through and color the white regions with region colors.
+ * Depth first search to c assign a region id to the connected component starting at the given pixel.
+ * @param regionMap The region map to assign the region id to (1 channel uchar image). This should contain 0 for the background initally (meaning it is a copy of the mask).
  * @param loc The location of the pixel to start the DFS at. (i,j)
- * @param color The color to color the connected component.
+ * @param regionId The region id to assign to the connected component.
  */
-void dfs(cv::Mat& colored, std::pair<int,int> loc, cv::Vec3b& color){
+void dfs(cv::Mat& regionMap, std::pair<int,int> loc, int regionId){
 
     // make a stack to keep track of the neighbors to color
     std::stack<std::pair<int,int>> stack;
@@ -138,18 +138,22 @@ void dfs(cv::Mat& colored, std::pair<int,int> loc, cv::Vec3b& color){
         int i = loc.first;
         int j = loc.second;
         // check that the pixel is white (meaning it is in the mask and has not already been colored/tinted)
-        if ( ! pixelsEqual(colored.at<cv::Vec3b>(i, j) ,cv::Vec3b(255,255,255))){
+        if ( regionMap.at<unsigned char>(i,j) != 255){
+            continue;
+        }
+        // if we are on the last region, we don't need to check for connected components as the regionMap is already filled with the region id
+        if (regionId == 255){
             continue;
         }
     
         // check that the pixel is in bounds
-        if (i < 0 || i >= colored.rows || j < 0 || j >= colored.cols){
+        if (i < 0 || i >= regionMap.rows || j < 0 || j >= regionMap.cols){
             continue;
         }
     
 
         // color the pixel
-        colored.at<cv::Vec3b>(i,j) = color;
+        regionMap.at<unsigned char>(i,j) = regionId;
 
 
         // try and color neighbors if they are connected
@@ -165,6 +169,65 @@ void dfs(cv::Mat& colored, std::pair<int,int> loc, cv::Vec3b& color){
 
     return;
 }
+
+/**
+ * Creates a region map, assigning a unique integer region id for each foreground region in the mask.
+ * 
+ * 
+ * @param image The image to segment (3 channel uchar image).
+ * @param mask The mask of the object in the image (1 channel uchar image).
+ * @return A region map where each unique masked foreground region is assigned a unique integer id (1 channel uchar image).
+ */
+cv::Mat getRegionMap(const cv::Mat& image, const cv::Mat& mask){
+    if (image.empty() || mask.empty()){
+        std::cout << "Error: Image or mask is empty" << std::endl;
+        exit(-1);
+    }
+    if (image.rows != mask.rows || image.cols != mask.cols){
+        std::cout << "Error: Image and mask are not the same size" << std::endl;
+        exit(-1);
+    }
+
+    if (image.channels() != 3){
+        std::cout << "Error: Image is not 3 channel" << std::endl;
+        exit(-1);
+    }
+    if (mask.channels() != 1){
+        std::cout << "Error: Mask is not 1 channel" << std::endl;
+        exit(-1);
+    }
+
+
+    cv::Mat regionMap = mask.clone();
+
+
+
+
+    // initalize a set of seen colors to keep track of which colors have been used
+    std::set<std::tuple<int,int,int>> seenColors;
+    int curRegionId = 1;
+    for (int i = 0; i< image.rows; i++){
+        for (int j = 0; j < image.cols; j++){
+
+
+
+            if (regionMap.at<unsigned char>(i,j) != 255){ // if its not 255, it either means it is not in the mask or has already been colored
+                continue;
+            }
+
+            // color the pixels (will return right away if the pixel is not in the mask or has already been colored)
+            dfs(regionMap, std::pair<int,int>(i,j), curRegionId);
+            curRegionId++;
+
+
+        }
+    }
+
+    return regionMap;
+
+}
+
+
 
 /**
  * Creates a segmentaiton where each unique masked foreground region is colored differently.
@@ -195,47 +258,47 @@ cv::Mat colorConnectedComponents(const cv::Mat& image, const cv::Mat& mask){
     }
 
 
-    cv::Mat colored; 
-    // convert to greyscale to BGR
-    cv::cvtColor(mask, colored, cv::COLOR_GRAY2BGR);
+    cv::Mat colored = image.clone();
 
-
-
+    cv::Mat regionMap = getRegionMap(image, mask);
+    std::unordered_map<int,cv::Vec3b> regionColors;
     // initalize a set of seen colors to keep track of which colors have been used
     std::set<std::tuple<int,int,int>> seenColors;
-
     for (int i = 0; i< image.rows; i++){
         cv::Vec3b* coloredRow = colored.ptr<cv::Vec3b>(i);
         const cv::Vec3b* imageRow = image.ptr<cv::Vec3b>(i);
-        const unsigned char* maskRow = mask.ptr<unsigned char>(i);
+        unsigned char* regionRow = regionMap.ptr<unsigned char>(i);
         for (int j = 0; j < image.cols; j++){
 
+            if (regionRow[j] == 0){ // if it's 0, it either means it is not in the foreground
+                continue;
+            }
 
-            int c1 = rand() % 256;
-            int c2 = rand() % 256;
-            int c3 = rand() % 256;
-            std::tuple<int,int,int> colorVals = std::make_tuple(c1,c2,c3);
-            while (seenColors.find(colorVals) != seenColors.end()){ // to make sure we don't use the same color twice
+            int regionId = regionRow[j];
+
+            cv::Vec3b color;
+            // check if the region has already been colored
+            if (regionColors.find(regionId) == regionColors.end()){
                 int c1 = rand() % 256;
                 int c2 = rand() % 256;
                 int c3 = rand() % 256;
-                colorVals = std::make_tuple(c1,c2,c3);
+                std::tuple<int,int,int> colorVals = std::make_tuple(c1,c2,c3);
+                while (seenColors.find(colorVals) != seenColors.end()){ // to make sure we don't use the same color twice
+                    int c1 = rand() % 256;
+                    int c2 = rand() % 256;
+                    int c3 = rand() % 256;
+                    colorVals = std::make_tuple(c1,c2,c3);
+                }
+                
+                seenColors.insert(colorVals);
+                regionColors[regionId] = cv::Vec3b(c1,c2,c3);
+                color = cv::Vec3b(c1,c2,c3);
+            }else{
+                color = regionColors[regionId];
             }
-            
-            seenColors.insert(colorVals);
-            cv::Vec3b color = cv::Vec3b(c1,c2,c3);
-
-
-            // color the pixels (will return right away if the pixel is not in the mask or has already been colored)
-            dfs(colored, std::pair<int,int>(i,j), color);
 
             // tint the pixel if it is in the mask
-            if (maskRow[j] == 255){
-                coloredRow[j] = imageRow[j] * 0.5 + coloredRow[j] * 0.5; 
-            }else{
-                // if not in the foreground, just copy the pixel
-                coloredRow[j] = imageRow[j];
-            }
+            coloredRow[j] = imageRow[j] * 0.5 + color * 0.5; 
 
 
         }
