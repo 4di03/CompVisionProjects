@@ -60,16 +60,7 @@ int main(int argc, char** argv){
         // Implicit conversion (creates a copy)
         std::string imgName = imageDBPath + "/" + dp->d_name;
 
-        cv::Mat image = cv::imread(imgName);
-        if (image.empty()){
-            std::cout << "Error: Image not found" << std::endl;
-            return -1;
-        }
-        cv::Mat mask = segmentObjects(image);
-        std::string outputName = "output/" + std::string(dp->d_name) ;
-        printf("Writing to %s\n", outputName.c_str());
-        cv::imwrite(outputName, mask);
-
+        runObjectRecognition(imgName);
 
         }
     }

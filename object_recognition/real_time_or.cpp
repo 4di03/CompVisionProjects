@@ -37,6 +37,26 @@
         cv::Mat thresholdedFrame = segmentObjects(rawFrame);
         cv::imshow("Thresholded Frame", thresholdedFrame);
 
+        RegionData data = getRegionMap(image);
+        cv::Mat regionMap = data.regionMap;
+        std::unordered_map<int,int> regionSizes = data.regionSizes;
+        // get id of max size region
+        int largestRegionId = 0;
+        int largestRegionSize = 0;
+        for (auto it = regionSizes.begin(); it != regionSizes.end(); it++){
+            if (it->second > largestRegionSize){
+                largestRegionSize = it->second;
+                largestRegionId = it->first;
+            }
+        }
+        // Get features for the largest region
+        cv::Mat featuresImage = drawFeatures(image, regionMap, largestRegionId);
+        
+        cv::imshow("Features Image", featuresImage);
+
+        cv::Mat segmented = segmentObjects(image, regionMap);
+        cv::imshow("Segmented Image", segmented);
+
         // see if there is a waiting keystroke
         char key = cv::waitKey(1);
 

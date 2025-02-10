@@ -23,17 +23,8 @@ int main(int argc, char** argv){
 
     std::string imagePath = argv[1];
 
-    cv::Mat image = cv::imread(imagePath);
+    runObjectRecognition(imagePath);
 
-    if (image.empty()){
-        std::cout << "Error: Image not found" << std::endl;
-        return -1;
-    }
-
-    cv::Mat objectMask = segmentObjects(image);
-
-    cv::imshow("Original Image", image);
-    cv::imshow("Object Mask", objectMask);
     std::cout << "Press any key to exit" << std::endl;
     cv::waitKey(0);
     return 0;

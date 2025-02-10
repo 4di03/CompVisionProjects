@@ -125,13 +125,14 @@ bool pixelsEqual(const cv::Vec3b& a, const cv::Vec3b& b){
  * @param regionMap The region map to assign the region id to (1 channel uchar image). This should contain 0 for the background initally (meaning it is a copy of the mask).
  * @param loc The location of the pixel to start the DFS at. (i,j)
  * @param regionId The region id to assign to the connected component.
+ * @return The size of the region.
  */
-void dfs(cv::Mat& regionMap, std::pair<int,int> loc, int regionId){
+int dfs(cv::Mat& regionMap, std::pair<int,int> loc, int regionId){
 
     // make a stack to keep track of the neighbors to color
     std::stack<std::pair<int,int>> stack;
     stack.push(loc);
-
+    int regionSize = 0;
     while (!stack.empty()){
         std::pair<int,int> loc = stack.top();
         stack.pop(); // returns void
@@ -154,6 +155,7 @@ void dfs(cv::Mat& regionMap, std::pair<int,int> loc, int regionId){
 
         // color the pixel
         regionMap.at<unsigned char>(i,j) = regionId;
+        regionSize++;
 
 
         // try and color neighbors if they are connected
@@ -167,8 +169,111 @@ void dfs(cv::Mat& regionMap, std::pair<int,int> loc, int regionId){
         }
         }
 
-    return;
+    return regionSize;
 }
+
+
+/**
+ * draws the axis of least central moment for each region in the region map.
+ * The axis of least central moment is the eigenvector corresponding to the smallest eigenvalue of the covariance matrix (PCA) of the region.
+ * It represents the axis along the "shortest" direction of the region.
+ * @param src The source image.
+ * @param dst The destination image. In the end this will be the source image with the axis of least central moment drawn on it. Thus function will overwrite any existing data in the destination image.
+ * @param regionMask Binary mask of the region of interest.
+ */
+ void drawAxisOfLeastCentralMoment(const cv::Mat& src, cv::Mat& dst, const cv::Mat& regionMask) {
+    if (src.empty()){
+        std::cout << "Error: Source image is empty" << std::endl;
+        exit(-1);
+    }
+    if (dst.empty()){
+        std::cout << "Error: Destination image is empty" << std::endl;
+        exit(-1);
+    }
+    if (regionMask.empty()){
+        std::cout << "Error: Region mask is empty" << std::endl;
+        exit(-1);
+    }
+    if (regionMask.channels() != 1){
+        std::cout << "Error: Region mask is not 1 channel" << std::endl;
+        exit(-1);
+    }
+
+    cv::Mat mask = regionMask;
+
+    std::vector<std::vector<cv::Point>> contours; 
+    cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE); // get boundary of the region
+
+
+    if (contours.size() != 1){
+        printf("Error: Expected 1 contour, got %d\n", contours.size());
+        exit(-1);
+    }
+
+    cv::Moments mu = cv::moments(contours[0]);
+
+    // Compute covariance matrix from second-order moments
+    double mu20 = mu.mu20 / mu.m00;  // Normalize by m00 (area)
+    double mu02 = mu.mu02 / mu.m00;
+    double mu11 = mu.mu11 / mu.m00;
+
+    cv::Mat covariance = (cv::Mat_<double>(2, 2) << mu20, mu11, mu11, mu02);
+    cv::Mat eigenvalues, eigenvectors;
+    cv::eigen(covariance, eigenvalues, eigenvectors);
+
+    // The eigenvector corresponding to the smallest eigenvalue is the axis of least moment (the 2nd column of the eigenvectors matrix as that is the vector corresponding to the minor eigenvalue)
+    cv::Point2d leastMomentAxis(eigenvectors.at<double>(1, 0), eigenvectors.at<double>(1, 1));
+
+
+    // get centroid of the region using the moments since we already have them
+    cv::Point2d centroid(mu.m10 / mu.m00, mu.m01 / mu.m00);
+
+    // draw the axis of least moment as an arrow
+    cv::arrowedLine(dst, centroid, centroid + 50 * leastMomentAxis, cv::Scalar(0, 0, 255), 2);
+
+}
+/**
+ * Gets the oriented bounding box of the region in the image.
+ * @param src The source image.
+ * @param dst The destination image on which the object is drawn;
+ * @param regionMask The binary mask of the region of interest.
+ * @return The oriented bounding box of the region.
+ */
+cv::RotatedRect getBoundingBox(const cv::Mat& src,cv::Mat& dst, const cv::Mat& regionMask){
+    if (src.empty() || regionMask.empty() || dst.empty()){
+        std::cout << "Error: Image or region mask is empty" << std::endl;
+        exit(-1);
+    }
+    std::vector<std::vector<cv::Point>> contours; 
+    cv::findContours(regionMask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE); // get boundary of the region
+
+
+    if (contours.size() != 1){
+        printf("Error: Expected 1 contour, got %d\n", contours.size());
+        exit(-1);
+    }
+
+    return cv::minAreaRect(contours[0]);
+}
+
+/**
+ * Draws the oriented bounding box of the region in the image.
+ * @param dst The destination image on which the object is drawn;
+ * @param boundingBox The oriented bounding box of the region.
+ */
+void drawBoundingBox(cv::Mat& dst, const cv::RotatedRect& boundingBox){
+
+
+    cv::Point2f vertices[4];
+    boundingBox.points(vertices);
+
+    for (int i = 0; i < 4; i++){
+        cv::line(dst, vertices[i], vertices[(i+1)%4], cv::Scalar(255,20,0), 2);
+    }
+
+}
+
+
 
 /**
  * Creates a region map, assigning a unique integer region id for each foreground region in the mask.
@@ -176,9 +281,10 @@ void dfs(cv::Mat& regionMap, std::pair<int,int> loc, int regionId){
  * 
  * @param image The image to segment (3 channel uchar image).
  * @param mask The mask of the object in the image (1 channel uchar image).
- * @return A region map where each unique masked foreground region is assigned a unique integer id (1 channel uchar image).
+ * @return A region map where each unique masked foreground region is assigned a unique integer id (1 channel uchar image). 
+ *      Also return a map of region id to region size.
  */
-cv::Mat getRegionMap(const cv::Mat& image, const cv::Mat& mask){
+RegionData getRegionMapFromForegroundMask(const cv::Mat& image, const cv::Mat& mask){
     if (image.empty() || mask.empty()){
         std::cout << "Error: Image or mask is empty" << std::endl;
         exit(-1);
@@ -200,6 +306,7 @@ cv::Mat getRegionMap(const cv::Mat& image, const cv::Mat& mask){
 
     cv::Mat regionMap = mask.clone();
 
+    std::unordered_map<int,int> regionSizes;
 
 
 
@@ -216,34 +323,33 @@ cv::Mat getRegionMap(const cv::Mat& image, const cv::Mat& mask){
             }
 
             // color the pixels (will return right away if the pixel is not in the mask or has already been colored)
-            dfs(regionMap, std::pair<int,int>(i,j), curRegionId);
+            int regionSize = dfs(regionMap, std::pair<int,int>(i,j), curRegionId);
+            regionSizes[curRegionId] = regionSize;
             curRegionId++;
 
 
         }
     }
 
-    return regionMap;
+    return RegionData{regionMap, regionSizes};
 
 }
 
 
 
 /**
- * Creates a segmentaiton where each unique masked foreground region is colored differently.
- * Regions are considered connected if there is an adjacent foreground pixel in 8 directions.
- * 
+ * Colors the connected components in the image with different colors.
  * 
  * @param image The image to segment (3 channel uchar image).
- * @param mask The mask of the object in the image (1 channel uchar image).
+ * @param regionMap The region map where each unique masked foreground region is assigned a unique integer id (1 channel uchar image).
  * @return The image with the connected components colored differently (3 channel uchar image).
  */
-cv::Mat colorConnectedComponents(const cv::Mat& image, const cv::Mat& mask){
-    if (image.empty() || mask.empty()){
-        std::cout << "Error: Image or mask is empty" << std::endl;
+cv::Mat colorConnectedComponents(const cv::Mat& image, const cv::Mat& regionMap){
+    if (image.empty() || regionMap.empty()){
+        std::cout << "Error: Image or regionMap is empty" << std::endl;
         exit(-1);
     }
-    if (image.rows != mask.rows || image.cols != mask.cols){
+    if (image.rows != mask.rows){
         std::cout << "Error: Image and mask are not the same size" << std::endl;
         exit(-1);
     }
@@ -252,22 +358,17 @@ cv::Mat colorConnectedComponents(const cv::Mat& image, const cv::Mat& mask){
         std::cout << "Error: Image is not 3 channel" << std::endl;
         exit(-1);
     }
-    if (mask.channels() != 1){
-        std::cout << "Error: Mask is not 1 channel" << std::endl;
-        exit(-1);
-    }
 
 
     cv::Mat colored = image.clone();
 
-    cv::Mat regionMap = getRegionMap(image, mask);
     std::unordered_map<int,cv::Vec3b> regionColors;
     // initalize a set of seen colors to keep track of which colors have been used
     std::set<std::tuple<int,int,int>> seenColors;
     for (int i = 0; i< image.rows; i++){
         cv::Vec3b* coloredRow = colored.ptr<cv::Vec3b>(i);
         const cv::Vec3b* imageRow = image.ptr<cv::Vec3b>(i);
-        unsigned char* regionRow = regionMap.ptr<unsigned char>(i);
+        const unsigned char* regionRow = regionMap.ptr<unsigned char>(i);
         for (int j = 0; j < image.cols; j++){
 
             if (regionRow[j] == 0){ // if it's 0, it either means it is not in the foreground
@@ -311,12 +412,13 @@ cv::Mat colorConnectedComponents(const cv::Mat& image, const cv::Mat& mask){
 
 
 /**
- * Get the mask of the object in the image using ISODATA to threshold the image based on the two dominant colors.
+ * Creates a region map, assigning a unique integer region id for each foreground region in the image
+ * Get the mask of the foreground to compute regions in the image using ISODATA to threshold the image based on the two dominant colors.
  * 
- * @param image The image to get the object mask of (3 channel uchar image).
- * @return The mask of the object in the image (1 channel uchar image).
+ * @param image The image to segment (3 channel uchar image).
+ * @return A region map where each unique masked foreground region is assigned a unique integer id (1 channel uchar image).
  */
-cv::Mat segmentObjects(const cv::Mat& image){
+RegionData getRegionMap(const cv::Mat& image){
     if (image.empty()){
         std::cout << "Error: Image is empty" << std::endl;
         exit(-1);
@@ -340,8 +442,107 @@ cv::Mat segmentObjects(const cv::Mat& image){
     }
 
     mask = cleanup(mask);
+    return getRegionMapFromForegroundMask(image, mask);
 
-    cv::Mat segmented = colorConnectedComponents(image, mask);
+}
+
+
+
+cv::Mat drawFeatures(const cv::Mat& image, const cv::Mat& regionMap, int regionId){
+
+    cv::Mat featuresImage = image.clone();
+
+
+    cv::Mat largestRegionMask = (regionMap == largestRegregionIdionId);
+
+    cv::RotatedRect boundingBox = getBoundingBox(image, featuresImage, largestRegionMask);
+    drawBoundingBox(featuresImage, boundingBox);
+    drawAxisOfLeastCentralMoment(image, featuresImage, largestRegionMask);
+
+    return featuresImage;
+
+}
+
+RegionFeatureVector getRegionFeatures(const cv::Mat& image, const cv::Mat& regionMap, int regionId){
+
+    cv::Mat mask = (regionMap == regionId);
+
+    cv::RotatedRect boundingBox = getBoundingBox(mask);
+    cv::Moments mu = cv::moments(mask);
+
+    float bboxPctFilled = mu.m00 / (boundingBox.size.width * boundingBox.size.height);
+    float bboxAspectRatio = std::max(boundingBox.size.width, boundingBox.size.height) / std::min(boundingBox.size.width, boundingBox.size.height);
+    float circularity = 4 * M_PI * mu.m00 / (mu.m00 * mu.m00);
+    cv::Vec3b meanColor = cv::mean(image, mask);
+
+    return RegionFeatureVector{bboxPctFilled, bboxAspectRatio, circularity, meanColor[0], meanColor[1], meanColor[2]};
+}
+
+
+int getLargestRegion(const cv::Mat& regionMap){
+
+}
+
+/**
+ * outputs a tinted region image.
+ * 
+ * @param image The image to get the object mask of (3 channel uchar image).
+ * @param regionMap The region map where each unique masked foreground region is assigned a unique integer id (1 channel uchar image).
+ * @return The mask of the object in the image (1 channel uchar image).
+ */
+cv::Mat segmentObjects(const cv::Mat& image, const cv::Mat& regionMap){
+    cv::Mat segmented = colorConnectedComponents(image,regionMap);
 
     return segmented;
+}
+
+
+/**
+ * Run all the object recognition tasks on the given image.
+ * @param imgPath The path to the image.
+ */
+void runObjectRecognition(std::string imgPath){
+    // get basename of the path
+    std::string imageFileName = imgPath.substr(imgPath.find_last_of("/\\") + 1); 
+
+    cv::Mat image = cv::imread(imgPath);
+    if (image.empty()){
+        std::cout << "Error: Image not found" << std::endl;
+        exit(-1);
+    }
+
+    RegionData data = getRegionMap(image);
+    cv::Mat regionMap = data.regionMap;
+    std::unordered_map<int,int> regionSizes = data.regionSizes;
+    
+    // get id of max size region
+    int largestRegionId = 0;
+    int largestRegionSize = 0;
+    for (auto it = regionSizes.begin(); it != regionSizes.end(); it++){
+        if (it->second > largestRegionSize){
+            largestRegionSize = it->second;
+            largestRegionId = it->first;
+        }
+    }
+
+    cv::Mat featuresImage = drawFeatures(image, regionMap, largestRegionId);
+
+    // save features image to file
+    std::string featuresFileName = "output/features_" + imageFileName;
+    printf("Writing to %s\n", featuresFileName.c_str());
+    cv::imwrite(featuresFileName, featuresImage);
+    RegionFeatureVector features =  getRegionFeatures(image, regionMap, largestRegionId);
+    std::vector<float> featureVec = features.toVector();
+    // save feature vector to file
+    std::string featureFileName = "output/features_" + imageFileName + ".txt";
+    FILE* featureFile = fopen(featureFileName.c_str(), "w");
+    for (float f : featureVec){
+        fprintf(featureFile, "%f\n", f);
+    }
+    fclose(featureFile);
+    // save segmented image to a file
+    cv::Mat segmented = segmentObjects(image, regionMap);
+    std::string outputName = "output/segmented_" + imageFileName ;
+    printf("Writing to %s\n", outputName.c_str());
+    cv::imwrite(outputName, segmented);
 }
