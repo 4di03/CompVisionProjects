@@ -1,0 +1,35 @@
+#include <iostream>
+
+
+// dataclass that encapsulate all essential information about a file path
+struct FilePath{
+    std::string directoryPath;
+    std::string fileName;
+
+
+    /**
+     * Gets the name of the file without the extension.
+     */
+    std::string getName(){
+        return fileName.substr(0, fileName.find_last_of("."));
+    }
+
+    /**
+     * Gets the full path of the file.
+     */
+    std::string getFullPath(){
+        return directoryPath + "/" + fileName;
+    }
+
+    /**
+     * Gets the extension of the file.
+     */
+    std::string getExtension(){
+        return fileName.substr(fileName.find_last_of("."));
+    }
+};
+
+
+
+std::vector<FilePath> getFilePathsFromDir(std::string dirPath);
+

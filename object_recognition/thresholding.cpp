@@ -8,7 +8,7 @@
 #include "thresholding.h"
 #include "kmeans.h"
 #include <iostream>
-#define NUM_MEANS 2 // number of means to use for kmeans in ISODATA
+#define NUM_MEANS 5 // number of means to use for kmeans in ISODATA
 #define SATURATION_THRESHOLD 100 // saturation threshold for darkening saturated areas
 #define NUM_EROSION_ITERATIONS 1
 #define NUM_DILATION_ITERATIONS 5
@@ -493,6 +493,29 @@ RegionFeatureVector getRegionFeatures(const cv::Mat& image, const cv::Mat& regio
     return RegionFeatureVector{bboxPctFilled, bboxAspectRatio, circularity, meanColorVec};
 }
 
+
+/**
+ * Gets the object features for the largest region in the image.
+ * @param image The image to get the object mask of (3 channel uchar image).
+ * @return The object features as a RegionFeatureVector.
+ */
+RegionFeatureVector getObjectFeatures(const cv::Mat& image){
+    RegionData data = getRegionMap(image);
+    cv::Mat regionMap = data.regionMap;
+    std::unordered_map<int,int> regionSizes = data.regionSizes;
+    
+    // get id of max size region
+    int largestRegionId = 0;
+    int largestRegionSize = 0;
+    for (auto it = regionSizes.begin(); it != regionSizes.end(); it++){
+        if (it->second > largestRegionSize){
+            largestRegionSize = it->second;
+            largestRegionId = it->first;
+        }
+    }
+    RegionFeatureVector features =  getRegionFeatures(image, regionMap, largestRegionId);
+    return features;
+}
 
 /**
  * outputs a tinted region image.

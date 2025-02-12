@@ -7,44 +7,68 @@
  */
 #include <opencv2/opencv.hpp>
 
-// struct representing translation , scale , and rotationally invaraint feature vector for regions in image
-struct RegionFeatureVector{
-    float bboxPctFilled; // percentage of the bounding box filled by the region
-    float bboxAspectRatio; // longest side of the bounding box divided by the shortest side
-    float circularity; // how circular the object is
-    cv::Vec3b meanColor; // mean color of the region
+// dataclass representing translation , scale , and rotationally invaraint feature vector for regions in image
+class RegionFeatureVector{
+    public:
+        float bboxPctFilled; // percentage of the bounding box filled by the region
+        float bboxAspectRatio; // longest side of the bounding box divided by the shortest side
+        float circularity; // how circular the object is
+        cv::Vec3b meanColor; // mean color of the region
 
 
-
-    /**
-     * Converts the feature vector to a vector of floats.
-     * @return A vector of floats representing the feature vector.
-     */
-    std::vector<float> toVector(){
-        std::vector<float> vec;
-        vec.push_back(bboxPctFilled);
-        vec.push_back(bboxAspectRatio);
-        vec.push_back(circularity);
-        vec.push_back(meanColor[0]);
-        vec.push_back(meanColor[1]);
-        vec.push_back(meanColor[2]);
-        return vec;
-    }
-
-    
-    /**
-     * Saves the feature vector to a file.
-     * @param filename The name of the file to save the feature vector to.
-     */
-    void save(std::string filename){
-        FILE* featureFile = fopen(filename.c_str(), "w");
-        for (float f : this->toVector()){
-            fprintf(featureFile, "%f\n", f);
+        // default constructor
+        RegionFeatureVector(float bboxPctFilled, float bboxAspectRatio, float circularity, cv::Vec3b meanColor){
+            this->bboxPctFilled = bboxPctFilled;
+            this->bboxAspectRatio = bboxAspectRatio;
+            this->circularity = circularity;
+            this->meanColor = meanColor;
         }
-        fclose(featureFile);
-    }
+        /**
+         * Loads the feature vector from a file.
+         * @param filename The name of the file to load the feature vector from.
+         * @return The feature vector loaded from the file.
+         */
+        RegionFeatureVector(std::string filename){
+            FILE* featureFile = fopen(filename.c_str(), "r");
+            fscanf(featureFile, "%f\n", &bboxPctFilled);
+            fscanf(featureFile, "%f\n", &bboxAspectRatio);
+            fscanf(featureFile, "%f\n", &circularity);
+            fscanf(featureFile, "%c\n", &meanColor[0]);
+            fscanf(featureFile, "%c\n", &meanColor[1]);
+            fscanf(featureFile, "%c\n", &meanColor[2]);
+            fclose(featureFile);
+        }
+
+        /**
+         * Converts the feature vector to a vector of floats.
+         * @return A vector of floats representing the feature vector.
+         */
+        std::vector<float> toVector(){
+                return {
+                bboxPctFilled,
+                bboxAspectRatio,
+                circularity,
+                static_cast<float>(meanColor[0]),  // Convert uchar -> float
+                static_cast<float>(meanColor[1]),
+                static_cast<float>(meanColor[2])
+            };
+        }
+        
+        /**
+         * Saves the feature vector to a file.
+         * @param filename The name of the file to save the feature vector to.
+         */
+        void save(std::string filename){
+            FILE* featureFile = fopen(filename.c_str(), "w");
+            for (float f : this->toVector()){
+                fprintf(featureFile, "%f\n", f);
+            }
+            fclose(featureFile);
+        }
+
 
 };
+
 
 // struct representing the region data
 struct RegionData{
@@ -57,6 +81,9 @@ RegionData getRegionMap(const cv::Mat& image);
 cv::Mat segmentObjects(const cv::Mat& image, const cv::Mat& regionMap);
 
 RegionFeatureVector getRegionFeatures(const cv::Mat& image, const cv::Mat& regionMap, int regionId);
+
+// gets the features of the largest region in the image
+RegionFeatureVector getObjectFeatures(const cv::Mat& image);
 cv::Mat drawFeatures(const cv::Mat& image, const cv::Mat& regionMap, int regionId);
 
 void runObjectRecognition(std::string imgPath);
