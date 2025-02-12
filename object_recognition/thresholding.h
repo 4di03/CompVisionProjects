@@ -31,6 +31,19 @@ struct RegionFeatureVector{
         return vec;
     }
 
+    
+    /**
+     * Saves the feature vector to a file.
+     * @param filename The name of the file to save the feature vector to.
+     */
+    void save(std::string filename){
+        FILE* featureFile = fopen(filename.c_str(), "w");
+        for (float f : this->toVector()){
+            fprintf(featureFile, "%f\n", f);
+        }
+        fclose(featureFile);
+    }
+
 };
 
 // struct representing the region data
@@ -43,8 +56,7 @@ RegionData getRegionMap(const cv::Mat& image);
 // function that produces thresholded image for task 1 where the object's pixels are white and the background is black
 cv::Mat segmentObjects(const cv::Mat& image, const cv::Mat& regionMap);
 
-RegionFeatureVector getRegionFeatures(const cv::Mat& image, const cv::Mat& mask);
-
+RegionFeatureVector getRegionFeatures(const cv::Mat& image, const cv::Mat& regionMap, int regionId);
 cv::Mat drawFeatures(const cv::Mat& image, const cv::Mat& regionMap, int regionId);
 
 void runObjectRecognition(std::string imgPath);

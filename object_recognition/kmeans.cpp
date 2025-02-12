@@ -136,7 +136,7 @@ std::vector<cv::Vec3b> kmeans(const cv::Mat& image, int k){
         // update means
         means = newMeans;
 
-        printf("Current total change: %f\n", totalChange);
+        //printf("Current total change: %f\n", totalChange);
     } while (totalChange > epsilon);
 
 

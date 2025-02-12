@@ -7,67 +7,75 @@
  */
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <thread>
+#include <atomic>
 #include "thresholding.h"
+#define FEATURE_DATA_LOCATION "image_features"
+
 
 /**
  * Runs object recognition on a webcam feed.
- * @param argc The number of command line arguments.
- * @param argv The command line arguments. There are no arguments.
  */
- int main(int argc, char** argv){
+int main(int argc, char** argv) {
+    mkdir(FEATURE_DATA_LOCATION, 0777);
+
     cv::VideoCapture *capdev;
-    // open the video device
     capdev = new cv::VideoCapture(0);
-    if( !capdev->isOpened() ) {
-            printf("Unable to open video device\n");
-            return(-1);
+    if (!capdev->isOpened()) {
+        printf("Unable to open video device\n");
+        return -1;
     }
 
-    cv::Mat rawFrame;
     std::cout << "Press q to exit" << std::endl;
-    while (true){
-        *capdev >> rawFrame; // get a new frame from the camera, treat as a stream
 
-        if( rawFrame.empty() ) {
-            printf("frame is empty\n");
+    cv::Mat rawFrame;
+    while (true) {
+        *capdev >> rawFrame; // Get new frame
+
+        if (rawFrame.empty()) {
+            printf("Frame is empty\n");
             break;
         }
 
         cv::imshow("Video", rawFrame);
-        cv::Mat thresholdedFrame = segmentObjects(rawFrame);
-        cv::imshow("Thresholded Frame", thresholdedFrame);
 
-        RegionData data = getRegionMap(image);
+        RegionData data = getRegionMap(rawFrame);
         cv::Mat regionMap = data.regionMap;
-        std::unordered_map<int,int> regionSizes = data.regionSizes;
-        // get id of max size region
+        std::unordered_map<int, int> regionSizes = data.regionSizes;
+
+        cv::Mat thresholdedFrame = segmentObjects(rawFrame, regionMap);
+        cv::imshow("Segmented Frame", thresholdedFrame);
+
         int largestRegionId = 0;
         int largestRegionSize = 0;
-        for (auto it = regionSizes.begin(); it != regionSizes.end(); it++){
-            if (it->second > largestRegionSize){
-                largestRegionSize = it->second;
-                largestRegionId = it->first;
+        for (auto& [id, size] : regionSizes) {
+            if (size > largestRegionSize) {
+                largestRegionSize = size;
+                largestRegionId = id;
             }
         }
-        // Get features for the largest region
-        cv::Mat featuresImage = drawFeatures(image, regionMap, largestRegionId);
-        
+
+        cv::Mat featuresImage = drawFeatures(rawFrame, regionMap, largestRegionId);
         cv::imshow("Features Image", featuresImage);
 
-        cv::Mat segmented = segmentObjects(image, regionMap);
-        cv::imshow("Segmented Image", segmented);
-
-        // see if there is a waiting keystroke
-        char key = cv::waitKey(1);
-
-        if (key == 'q'){
+        // Check for key press
+        char key = cv::waitKey(1); // Read and reset keyPressed
+        if (key == 'q') {
             break;
+        } else if (key == 'n') {
+            std::string label;
+            std::cout << "Enter label: ";
+            std::cin >> label;
+
+            RegionFeatureVector features = getRegionFeatures(rawFrame, regionMap, largestRegionId);
+            std::string featuresFileName = std::string(FEATURE_DATA_LOCATION) + "/" + label + ".features";
+            features.save(featuresFileName);
+            printf("Saved features to %s\n", featuresFileName.c_str());
         }
-
-
     }
 
     return 0;
-
-
- }
+}

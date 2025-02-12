@@ -8,7 +8,7 @@
 #include "thresholding.h"
 #include "kmeans.h"
 #include <iostream>
-#define NUM_MEANS 5 // number of means to use for kmeans in ISODATA
+#define NUM_MEANS 2 // number of means to use for kmeans in ISODATA
 #define SATURATION_THRESHOLD 100 // saturation threshold for darkening saturated areas
 #define NUM_EROSION_ITERATIONS 1
 #define NUM_DILATION_ITERATIONS 5
@@ -206,7 +206,7 @@ int dfs(cv::Mat& regionMap, std::pair<int,int> loc, int regionId){
 
 
     if (contours.size() != 1){
-        printf("Error: Expected 1 contour, got %d\n", contours.size());
+        printf("Error: Expected 1 contour, got %d\n", static_cast<int>(contours.size()));
         exit(-1);
     }
 
@@ -229,18 +229,17 @@ int dfs(cv::Mat& regionMap, std::pair<int,int> loc, int regionId){
     cv::Point2d centroid(mu.m10 / mu.m00, mu.m01 / mu.m00);
 
     // draw the axis of least moment as an arrow
-    cv::arrowedLine(dst, centroid, centroid + 50 * leastMomentAxis, cv::Scalar(0, 0, 255), 2);
+    cv::arrowedLine(dst, centroid, centroid + 100 * leastMomentAxis, cv::Scalar(0, 0, 255), 4);
 
 }
 /**
  * Gets the oriented bounding box of the region in the image.
  * @param src The source image.
- * @param dst The destination image on which the object is drawn;
  * @param regionMask The binary mask of the region of interest.
  * @return The oriented bounding box of the region.
  */
-cv::RotatedRect getBoundingBox(const cv::Mat& src,cv::Mat& dst, const cv::Mat& regionMask){
-    if (src.empty() || regionMask.empty() || dst.empty()){
+cv::RotatedRect getBoundingBox(const cv::Mat& src, const cv::Mat& regionMask){
+    if (src.empty() || regionMask.empty() ){
         std::cout << "Error: Image or region mask is empty" << std::endl;
         exit(-1);
     }
@@ -249,7 +248,7 @@ cv::RotatedRect getBoundingBox(const cv::Mat& src,cv::Mat& dst, const cv::Mat& r
 
 
     if (contours.size() != 1){
-        printf("Error: Expected 1 contour, got %d\n", contours.size());
+        printf("Error: Expected 1 contour, got %d\n", static_cast<int>(contours.size()));
         exit(-1);
     }
 
@@ -347,10 +346,6 @@ RegionData getRegionMapFromForegroundMask(const cv::Mat& image, const cv::Mat& m
 cv::Mat colorConnectedComponents(const cv::Mat& image, const cv::Mat& regionMap){
     if (image.empty() || regionMap.empty()){
         std::cout << "Error: Image or regionMap is empty" << std::endl;
-        exit(-1);
-    }
-    if (image.rows != mask.rows){
-        std::cout << "Error: Image and mask are not the same size" << std::endl;
         exit(-1);
     }
 
@@ -453,35 +448,51 @@ cv::Mat drawFeatures(const cv::Mat& image, const cv::Mat& regionMap, int regionI
     cv::Mat featuresImage = image.clone();
 
 
-    cv::Mat largestRegionMask = (regionMap == largestRegregionIdionId);
+    cv::Mat largestRegionMask = (regionMap == regionId);
 
-    cv::RotatedRect boundingBox = getBoundingBox(image, featuresImage, largestRegionMask);
+    cv::RotatedRect boundingBox = getBoundingBox(image, largestRegionMask);
     drawBoundingBox(featuresImage, boundingBox);
     drawAxisOfLeastCentralMoment(image, featuresImage, largestRegionMask);
 
     return featuresImage;
 
 }
-
+/**
+ * Calculates the region features for the given region in the image.
+ * @param image The image to get the object mask of (3 channel uchar image).
+ * @param regionMap The region map where each unique masked foreground region is assigned a unique integer id (1 channel uchar image).
+ * @param regionId The id of the region to get the features of.
+ * @return The region features as a RegionFeatureVector.
+ */
 RegionFeatureVector getRegionFeatures(const cv::Mat& image, const cv::Mat& regionMap, int regionId){
 
     cv::Mat mask = (regionMap == regionId);
+    cv::RotatedRect boundingBox =getBoundingBox(image, mask);
+    // get area and perimeter of the region using contours
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    if (contours.size() != 1){
+        printf("Error: Expected 1 contour, got %d\n", static_cast<int>(contours.size()));
+        exit(-1);
+    }
+    float perimeter = cv::arcLength(contours[0], true);
+    float area = cv::contourArea(contours[0]);
+    
+    // get circularity of the region
+    float circularity = 4 * M_PI * area/ (perimeter * perimeter);
 
-    cv::RotatedRect boundingBox = getBoundingBox(mask);
-    cv::Moments mu = cv::moments(mask);
+    // get the percentage of the bounding box filled by the region
+    float bboxPctFilled = (area / (boundingBox.size.width * boundingBox.size.height)) * 100;
 
-    float bboxPctFilled = mu.m00 / (boundingBox.size.width * boundingBox.size.height);
+    // get the aspect ratio of the bounding box (max side length / min side length)
     float bboxAspectRatio = std::max(boundingBox.size.width, boundingBox.size.height) / std::min(boundingBox.size.width, boundingBox.size.height);
-    float circularity = 4 * M_PI * mu.m00 / (mu.m00 * mu.m00);
-    cv::Vec3b meanColor = cv::mean(image, mask);
 
-    return RegionFeatureVector{bboxPctFilled, bboxAspectRatio, circularity, meanColor[0], meanColor[1], meanColor[2]};
+    // get the mean color of the region
+    cv::Scalar meanColor = cv::mean(image, mask);
+    cv::Vec3b meanColorVec = cv::Vec3b(meanColor[0], meanColor[1], meanColor[2]);
+    return RegionFeatureVector{bboxPctFilled, bboxAspectRatio, circularity, meanColorVec};
 }
 
-
-int getLargestRegion(const cv::Mat& regionMap){
-
-}
 
 /**
  * outputs a tinted region image.
@@ -534,12 +545,11 @@ void runObjectRecognition(std::string imgPath){
     RegionFeatureVector features =  getRegionFeatures(image, regionMap, largestRegionId);
     std::vector<float> featureVec = features.toVector();
     // save feature vector to file
-    std::string featureFileName = "output/features_" + imageFileName + ".txt";
-    FILE* featureFile = fopen(featureFileName.c_str(), "w");
-    for (float f : featureVec){
-        fprintf(featureFile, "%f\n", f);
-    }
-    fclose(featureFile);
+
+    // get basename exclduing extension of imageFileName
+    std::string fvecFileName = "image_features/" + imageFileName.substr(0, imageFileName.find_last_of(".")) + ".features";
+    printf("Writing features to %s\n", fvecFileName.c_str());
+    features.save(fvecFileName);
     // save segmented image to a file
     cv::Mat segmented = segmentObjects(image, regionMap);
     std::string outputName = "output/segmented_" + imageFileName ;
