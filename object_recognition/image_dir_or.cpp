@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include "utils.h"
 #include "thresholding.h"
 
 /**
@@ -25,11 +26,18 @@
 int main(int argc, char** argv){
     
     if (argc < 2){
-        std::cout << "Usage: ./real_time_or <path_to_image>" << std::endl;
+        std::cout << "Usage: ./real_time_or <path_to_image> --save_features" << std::endl;
         return -1;
     }
 
     std::string imageDBPath = argv[1];
+    bool saveFeatures = false;
+    if (argc == 3 && strcmp(argv[2], "--save_features") == 0){
+        printf("Saving features\n");
+        saveFeatures = true;
+    }else{
+        printf("Not saving features\n");
+    }
 
 
     // compare with images in the database
@@ -45,25 +53,15 @@ int main(int argc, char** argv){
     mkdir("output", 0777);
 
 
-    while( (dp = readdir(dirp)) != NULL ) {
+    std::vector<FilePath> filepaths = getFilePathsFromDir(imageDBPath, {".jpeg", "jpg", ".JPG", ".png", ".ppm", ".tif"});
 
 
-        // check if the file is an image
-        if( strstr(dp->d_name, ".jpg") ||
-        strstr(dp->d_name, ".png") ||
-        strstr(dp->d_name, ".ppm") ||
-        strstr(dp->d_name, ".tif") ||
-        strstr(dp->d_name, "jpeg") ) {
+    for (FilePath fp : filepaths){
 
+        runObjectRecognition(fp.getFullPath(), saveFeatures);
 
-
-        // Implicit conversion (creates a copy)
-        std::string imgName = imageDBPath + "/" + dp->d_name;
-
-        runObjectRecognition(imgName);
-
-        }
     }
+
 
     return 0;
 

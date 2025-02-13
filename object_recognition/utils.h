@@ -1,5 +1,5 @@
 #include <iostream>
-
+#pragma once
 
 // dataclass that encapsulate all essential information about a file path
 struct FilePath{
@@ -31,5 +31,5 @@ struct FilePath{
 
 
 
-std::vector<FilePath> getFilePathsFromDir(std::string dirPath);
+std::vector<FilePath> getFilePathsFromDir(std::string dirPath, const std::vector<std::string>& extensions);
 

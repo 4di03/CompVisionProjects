@@ -6,14 +6,14 @@
  * Header file for the thresholding function used to segment the object.
  */
 #include <opencv2/opencv.hpp>
-
+#pragma once
 // dataclass representing translation , scale , and rotationally invaraint feature vector for regions in image
 class RegionFeatureVector{
     public:
         float bboxPctFilled; // percentage of the bounding box filled by the region
         float bboxAspectRatio; // longest side of the bounding box divided by the shortest side
         float circularity; // how circular the object is
-        cv::Vec3b meanColor; // mean color of the region
+        cv::Vec3f meanColor; // mean color of the region, using a float vector cause that is how its saved to file
 
 
         // default constructor
@@ -33,9 +33,9 @@ class RegionFeatureVector{
             fscanf(featureFile, "%f\n", &bboxPctFilled);
             fscanf(featureFile, "%f\n", &bboxAspectRatio);
             fscanf(featureFile, "%f\n", &circularity);
-            fscanf(featureFile, "%c\n", &meanColor[0]);
-            fscanf(featureFile, "%c\n", &meanColor[1]);
-            fscanf(featureFile, "%c\n", &meanColor[2]);
+            fscanf(featureFile, "%f\n", &meanColor[0]);
+            fscanf(featureFile, "%f\n", &meanColor[1]);
+            fscanf(featureFile, "%f\n", &meanColor[2]);
             fclose(featureFile);
         }
 
@@ -86,4 +86,4 @@ RegionFeatureVector getRegionFeatures(const cv::Mat& image, const cv::Mat& regio
 RegionFeatureVector getObjectFeatures(const cv::Mat& image);
 cv::Mat drawFeatures(const cv::Mat& image, const cv::Mat& regionMap, int regionId);
 
-void runObjectRecognition(std::string imgPath);
+void runObjectRecognition(std::string imgPath, bool saveFeatures = false);

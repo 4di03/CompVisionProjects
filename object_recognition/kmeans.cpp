@@ -111,9 +111,8 @@ std::vector<cv::Vec3b> kmeans(const cv::Mat& image, int k){
     }
 
 
-    int epsilon = k * 3; //  we tolerate differnece of 6 SSD per cluster
+    int epsilon = k * 1; //  we tolerate differnece of 6 SSD per cluster
 
-    printf("Doing kmeans with k = %d and epsilon = %d\n", k, epsilon);
 
     float totalChange = 0;
     // mean of each cluster

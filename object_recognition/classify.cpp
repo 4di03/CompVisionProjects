@@ -17,45 +17,9 @@
 #include <dirent.h>
 #include "utils.h"
 #include "thresholding.h"
+#include "classify.h"
 #define PREDICTIONS_FOLDER "predictions"
 
-
-
-struct ObjectFeatures{
-    std::vector<std::string> names;
-    std::vector<std::vector<float>> features;
-
-
-    /**
-     * Gets the standard deviations of the features.
-     * @return The standard deviations of the features, where stdDevs[i] is the standard deviation of the ith feature.
-     */
-    std::vector<float> getSTDDevs(){
-        std::vector<float> stdDevs;
-
-        int n = features.size(); // number of samples
-        int m = features[0].size(); // number of features
-        for (int i = 0; i < m; i++){
-            float sum = 0;
-            for (int j = 0; j <n; j++){
-                sum += features[j][i];
-            }
-            float mean = sum / n;
-            float stdDev = 0;
-            for (int j = 0; j < n; j++){
-                stdDev += (features[j][i] - mean) * (features[j][i] - mean);
-            }
-            stdDev = sqrt(stdDev / n);
-            stdDevs.push_back(stdDev);
-        }
-        return stdDevs;
-    };
-
-    int size(){
-        return features.size();
-    }
-
-};
 
 
 
@@ -68,7 +32,7 @@ ObjectFeatures loadKnownFeatures(const std::string& knownDBPath){
 
     ObjectFeatures knownFeatures;
 
-    std::vector<FilePath> filePaths = getFilePathsFromDir(knownDBPath);
+    std::vector<FilePath> filePaths = getFilePathsFromDir(knownDBPath, {".features"});
 
     for (FilePath fp: filePaths){
             RegionFeatureVector features = RegionFeatureVector(fp.getFullPath());
@@ -86,20 +50,28 @@ ObjectFeatures loadKnownFeatures(const std::string& knownDBPath){
  * @return The label of the best match.
  */
 std::string findBestMatch(const cv::Mat& unknownImg, ObjectFeatures db){
+    if (db.size() == 0){
+        std::cout << "Error: Known image database is empty" << std::endl;
+        exit(-1);
+    }
     RegionFeatureVector unknownFeatures = getObjectFeatures(unknownImg);
     float minDist = INT_MAX;
     std::string bestMatch = "";
 
     std::vector<float> stdDevs = db.getSTDDevs();
+    std::vector<float> unknownVec = unknownFeatures.toVector();
+
+
     for (int i = 0; i < db.size(); i++){
+
         float dist = 0;
-        std::vector<float> unknownVec = unknownFeatures.toVector();
         std::vector<float> knownVec = db.features[i];
         for (int i = 0; i < unknownVec.size(); i++){
 
             float norm_diff = (unknownVec[i] - knownVec[i]) / stdDevs[i];
             dist += norm_diff * norm_diff;
         }
+
         if (dist < minDist){
             minDist = dist;
             bestMatch = db.names[i];
@@ -121,44 +93,12 @@ cv::Mat labelImage(const cv::Mat& image, ObjectFeatures db){
 
     std::string label = findBestMatch(image, db);
 
-    cv::putText(labeledImage, label, cv::Point(10,10), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,255,255), 1);
+    int thickness = image.cols/100;
+    float fontScale = thickness * 0.4;
+    printf("Label: %s\n", label.c_str());
+    cv::putText(labeledImage, label, cv::Point(10, 0.1*image.rows), cv::FONT_HERSHEY_SIMPLEX, fontScale, cv::Scalar(255,255,255), thickness);
+
+
     return labeledImage;
 }
 
-/**
- * Runs classification on objects in a directory , given a known image database, and puts the results in the output directory.
- * @param argc The number of command line arguments.
- * @param argv The command line arguments. The first argument is the path to the directory.
- */
-int main(int argc, char** argv){
-    
-    if (argc < 3){
-        std::cout << "Usage: ./classify <path_to_known_db> <path_to_unknown_db>" << std::endl;
-        return -1;
-    }
-
-    std::string imageDBPath = argv[1];
-    std::string unknownDBPath = argv[2];
-
-
-    ObjectFeatures knownFeatures = loadKnownFeatures(imageDBPath);
-
-
-    std::vector<FilePath> unknownImgPaths = getFilePathsFromDir(unknownDBPath);
-
-    mkdir(PREDICTIONS_FOLDER, 0777);
-
-    for(FilePath fp : unknownImgPaths){
-        cv::Mat unknownImg = cv::imread(fp.getFullPath());
-        if (unknownImg.empty()){
-            std::cout << "Error: Image not found" << std::endl;
-            exit(-1);
-        }
-        cv::Mat labeledImage = labelImage(unknownImg, knownFeatures);
-        std::string outputFileName = std::string(PREDICTIONS_FOLDER) + "/" + fp.getName() + "_prediction.jpg";
-        cv::imwrite(outputFileName, labeledImage);
-    }
-
-    return 0;
-
-}

@@ -9,7 +9,7 @@
 #include "kmeans.h"
 #include <iostream>
 #define NUM_MEANS 5 // number of means to use for kmeans in ISODATA
-#define SATURATION_THRESHOLD 100 // saturation threshold for darkening saturated areas
+#define SATURATION_THRESHOLD 0.25 // decimal value of the saturation threshold above which the pixel is considered saturated
 #define NUM_EROSION_ITERATIONS 1
 #define NUM_DILATION_ITERATIONS 5
 /**
@@ -64,7 +64,7 @@ cv::Mat darkenSaturatedAreas(const cv::Mat& image, float brightnessFactor){
         unsigned char* rowS = S.ptr<unsigned char>(i);
         unsigned char* rowV = V.ptr<unsigned char>(i);
         for (int j = 0; j < image.cols; j++) {
-            if (rowS[j]> SATURATION_THRESHOLD) {  // Only modify dark pixels
+            if (rowS[j]> SATURATION_THRESHOLD * 255) {  // Only modify dark pixels. in opencv, saturation is in the range [0, 255]
                 int newValue = rowV[j] * brightnessFactor;
                 rowV[j] = newValue;
             }
@@ -420,6 +420,9 @@ RegionData getRegionMap(const cv::Mat& image){
     }
     cv::Mat processedImage =darkenSaturatedAreas(image, 0.01);
 
+    // cv::imshow("Processed Image", processedImage);
+    // cv::waitKey(0);
+
     // get the pixel in between the two dominant color values
     cv::Vec3b meanPixel = isodata(processedImage);
 
@@ -489,8 +492,8 @@ RegionFeatureVector getRegionFeatures(const cv::Mat& image, const cv::Mat& regio
 
     // get the mean color of the region
     cv::Scalar meanColor = cv::mean(image, mask);
-    cv::Vec3b meanColorVec = cv::Vec3b(meanColor[0], meanColor[1], meanColor[2]);
-    return RegionFeatureVector{bboxPctFilled, bboxAspectRatio, circularity, meanColorVec};
+    cv::Vec3f meanColorVec = cv::Vec3f(meanColor[0], meanColor[1], meanColor[2]);
+    return RegionFeatureVector(bboxPctFilled, bboxAspectRatio, circularity, meanColorVec);
 }
 
 
@@ -534,8 +537,9 @@ cv::Mat segmentObjects(const cv::Mat& image, const cv::Mat& regionMap){
 /**
  * Run all the object recognition tasks on the given image.
  * @param imgPath The path to the image.
+ * @param bool saveFeatures Whether to save the features to a image_features folder
  */
-void runObjectRecognition(std::string imgPath){
+void runObjectRecognition(std::string imgPath, bool saveFeatures){
     // get basename of the path
     std::string imageFileName = imgPath.substr(imgPath.find_last_of("/\\") + 1); 
 
@@ -569,10 +573,13 @@ void runObjectRecognition(std::string imgPath){
     std::vector<float> featureVec = features.toVector();
     // save feature vector to file
 
-    // get basename exclduing extension of imageFileName
-    std::string fvecFileName = "image_features/" + imageFileName.substr(0, imageFileName.find_last_of(".")) + ".features";
-    printf("Writing features to %s\n", fvecFileName.c_str());
-    features.save(fvecFileName);
+    if (saveFeatures){
+        // get basename exclduing extension of imageFileName
+        std::string fvecFileName = "image_features/" + imageFileName.substr(0, imageFileName.find_last_of(".")) + ".features";
+        printf("Writing features to %s\n", fvecFileName.c_str());
+        features.save(fvecFileName);
+    }
+
     // save segmented image to a file
     cv::Mat segmented = segmentObjects(image, regionMap);
     std::string outputName = "output/segmented_" + imageFileName ;
