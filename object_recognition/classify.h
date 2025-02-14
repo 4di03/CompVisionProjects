@@ -61,26 +61,96 @@ struct ObjectFeatures{
 
 
 
-/**
- * Loads the known features from the given directory.
- * @param knownDBPath The path to the known image database.
- * @return A map of the known features.
- */
+class DistanceMetric{
+    public:
+        /**
+         * Computes the  distance between two vectors.
+         * @param a The first vector.
+         * @param b The second vector.
+         * @param std (optional) The standard deviations of the features.
+         */
+        virtual float distance(const std::vector<float>& a, const std::vector<float>& b, const std::vector<float>& std = {}) = 0;
+
+
+        /**
+         * Gets the name of the distance metric.
+         * @return The name of the distance metric.
+         */
+        std::string getName(){
+            
+            return typeid(*this).name();
+        }
+
+        virtual ~DistanceMetric() = default;
+
+};
+
+class ScaledEuclideanDistance : public DistanceMetric{
+    public:
+        /**
+         * Computes the scaled euclidean distance between two vectors.
+         * @param a The first vector.
+         * @param b The second vector.
+         * @param std The standard deviations of the features.
+         */
+        float distance(const std::vector<float>& a, const std::vector<float>& b, const std::vector<float>& std);
+};
+
+
+class CosineDistance : public DistanceMetric{
+    public:
+        /**
+         * Computes the cosine distance between two vectors.
+         * @param a The first vector.
+         * @param b The second vector.
+         * @param std (NOT NEEDED) The standard deviations of the features.
+         */
+        float distance(const std::vector<float>& a, const std::vector<float>& b, const std::vector<float>& std);
+};
+
+class ChebyshevDistance: public DistanceMetric{
+    public:
+        /**
+         * Computes the scaledd chebyshev distance (L-inf norm) between two vectors.
+         * @param a The first vector.
+         * @param b The second vector.
+         * @param std (NOT NEEDED) The standard deviations of the features.
+         */
+        float distance(const std::vector<float>& a, const std::vector<float>& b, const std::vector<float>& std);
+};
+
+
+class SimpleEuclideanDistance: public DistanceMetric{
+    public:
+        /**
+         * Computes the simple euclidean distance between two vectors.
+         * @param a The first vector.
+         * @param b The second vector.
+         * @param std (NOT NEEDED) The standard deviations of the features.
+         */
+        float distance(const std::vector<float>& a, const std::vector<float>& b, const std::vector<float>& std);
+};
+
+class ManhattanDistance: public DistanceMetric{
+    public:
+        /**
+         * Computes the scaled manhattan distance between two vectors.
+         * @param a The first vector.
+         * @param b The second vector.
+         * @param std The standard deviations of the features.
+         */
+        float distance(const std::vector<float>& a, const std::vector<float>& b, const std::vector<float>& std);
+};
+
+
+
+
 ObjectFeatures loadKnownFeatures(const std::string& knownDBPath);
 
-/**
- * Gets the label of the best match for the unknown image in the known image database.
- * Uses the scaled eucliedean deistance metric sum(((x_1 - x_2) / stdev_x ))^2)
- * @param unknownImg The unknown image.
- * @param db The known image database.
- * @return The label of the best match.
- */
-std::string findBestMatch(const cv::Mat& unknownImg, ObjectFeatures db);
-/**
- * Labels the image with the best match from the known image database.
- * Places the label in the top left corner of the image.
- * @param image The image to label.
- * @param db The known image database to use for classification.
- * @return The labeled image.
- */
-cv::Mat labelImage(const cv::Mat& image, ObjectFeatures db);
+
+std::string findBestMatch(const cv::Mat& unknownImg, ObjectFeatures db, DistanceMetric& metric);
+cv::Mat labelImage(const cv::Mat& image, std::string label);
+
+
+
+void predict(const std::vector<FilePath>& unknownImgPaths, ObjectFeatures db, DistanceMetric& metric, std::string outputDir = PREDICTIONS_FOLDER);

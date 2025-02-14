@@ -46,9 +46,13 @@ int main(int argc, char** argv){
 
     printf("Found %d images to classify\n", static_cast<int>(unknownImgPaths.size()));
 
-    ScaledEuclideanDistance d;
-    
-    predict(unknownImgPaths, knownFeatures,  d, std::string(PREDICTIONS_FOLDER) + "/default");
+    DistanceMetric* metrics[] = {new ScaledEuclideanDistance(), new CosineDistance(), new ChebyshevDistance(), new SimpleEuclideanDistance(), new ManhattanDistance()};
+
+    for (DistanceMetric* metric : metrics){
+        predict(unknownImgPaths, knownFeatures, *metric, std::string(PREDICTIONS_FOLDER) + "/" + metric->getName());
+        delete metric; // free memory
+
+    }
 
     return 0;
 

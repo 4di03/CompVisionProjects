@@ -32,6 +32,25 @@ get image path> <directory of image dataset> <N>
 
 If you'd like to extract features' simply run `./real_time_or`, and type the 'n' key after clicking on the features Image window. Follow the prompt and this will save a feature vector in the `image_features` directory labeled according to your input.
 
+If you'd like to run classification with scaled euclidean distance, simply run:
+
+`./classify <path_to_known_db> <path_to_unknown_images>`
+
+The output will be placed in `predictions/default` relative to where the code was ran.
+
+
+If you'd like to run classification with all 5 distance metrics, run:
+
+`./compareDistanceMetrics <path_to_known_db> <path_to_unknown_images>`
+
+The output will be placed in `predictions/<distance_method_name>` relative to where the code was ran.
+
+
+### Demo
+
+Please follow this [link](https://drive.google.com/file/d/1bUER57udyDUkTDl73tSUmmATqzM8e60z/view?usp=sharing) to see a demo.
+
+
 ## Time Travel
 
 No time travel days will be used.

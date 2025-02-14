@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <thread>
 #include <atomic>
+#include "classify.h"
 #include "thresholding.h"
 #define FEATURE_DATA_LOCATION "image_features"
 
@@ -32,22 +33,26 @@ int main(int argc, char** argv) {
     std::cout << "Press q to exit" << std::endl;
 
     cv::Mat rawFrame;
+
+    ObjectFeatures db = loadKnownFeatures(FEATURE_DATA_LOCATION);
+
+    ScaledEuclideanDistance d;
+    DistanceMetric& metric = d;
     while (true) {
         *capdev >> rawFrame; // Get new frame
+
+
 
         if (rawFrame.empty()) {
             printf("Frame is empty\n");
             break;
         }
-
-        cv::imshow("Video", rawFrame);
+        cv::resize(rawFrame, rawFrame, cv::Size(320, 240));
 
         RegionData data = getRegionMap(rawFrame);
         cv::Mat regionMap = data.regionMap;
         std::unordered_map<int, int> regionSizes = data.regionSizes;
 
-        cv::Mat thresholdedFrame = segmentObjects(rawFrame, regionMap);
-        cv::imshow("Segmented Frame", thresholdedFrame);
 
         int largestRegionId = 0;
         int largestRegionSize = 0;
@@ -58,8 +63,15 @@ int main(int argc, char** argv) {
             }
         }
 
+        cv::Mat thresholdedFrame = segmentObjects(rawFrame, regionMap);
+        cv::imshow("Segmented Frame", thresholdedFrame);
+
         cv::Mat featuresImage = drawFeatures(rawFrame, regionMap, largestRegionId);
         cv::imshow("Features Image", featuresImage);
+
+        std::string predictedLabel = findBestMatch(rawFrame, db,metric);
+        cv::Mat labeledImage = labelImage(rawFrame, predictedLabel);
+        cv::imshow("Labeled Image", labeledImage);
 
         // Check for key press
         char key = cv::waitKey(1); // Read and reset keyPressed
