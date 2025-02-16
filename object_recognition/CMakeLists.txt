@@ -14,21 +14,25 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Use strict standard compliance
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-# create a library for thresholding
-add_library(thresholding thresholding.cpp kmeans.cpp utils.cpp classify.cpp)
+# create a library for object_recognition
+add_library(object_recognition thresholding.cpp kmeans.cpp utils.cpp classify.cpp)
 
+# Ensure object_recognition's headers are available to dependent targets
+target_include_directories(object_recognition PUBLIC ${CMAKE_SOURCE_DIR})
+target_link_libraries(object_recognition PUBLIC ${OpenCV_LIBS})
 
+add_executable(image_or image_or.cpp)
+add_executable(image_dir_or image_dir_or.cpp)
+add_executable(real_time_or real_time_or.cpp)
+add_executable(classify runClassification.cpp)
+add_executable(compareDistanceMetrics compareDistanceMetrics.cpp)
+add_executable(test_cleanup testGrassfire.cpp)
 
-add_executable(image_or image_or.cpp thresholding.cpp kmeans.cpp utils.cpp)
-add_executable(image_dir_or image_dir_or.cpp thresholding.cpp kmeans.cpp utils.cpp classify.cpp)
-add_executable(real_time_or real_time_or.cpp thresholding.cpp kmeans.cpp utils.cpp classify.cpp)
-add_executable(classify runClassification.cpp classify.cpp utils.cpp thresholding.cpp kmeans.cpp)
-add_executable(compareDistanceMetrics compareDistanceMetrics.cpp classify.cpp utils.cpp thresholding.cpp kmeans.cpp)
-add_executable(test_cleanup testGrassfire.cpp thresholding.cpp kmeans.cpp utils.cpp classify.cpp)
-target_link_libraries(image_dir_or ${OpenCV_LIBS} thresholding)
-target_link_libraries(image_or ${OpenCV_LIBS} thresholding)
-target_link_libraries(real_time_or ${OpenCV_LIBS} thresholding)
-target_link_libraries(classify ${OpenCV_LIBS} thresholding)
-target_link_libraries(compareDistanceMetrics ${OpenCV_LIBS} thresholding)
-target_link_libraries(test_cleanup ${OpenCV_LIBS} thresholding)
+target_link_libraries(image_dir_or PRIVATE object_recognition)
+target_link_libraries(image_or PRIVATE object_recognition)
+target_link_libraries(real_time_or PRIVATE object_recognition)
+target_link_libraries(classify PRIVATE object_recognition)
+target_link_libraries(compareDistanceMetrics PRIVATE object_recognition)
+target_link_libraries(test_cleanup PRIVATE object_recognition)
+
 

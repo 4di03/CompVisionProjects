@@ -6,7 +6,10 @@
  * Header file for the thresholding function used to segment the object.
  */
 #include <opencv2/opencv.hpp>
+#define NUM_EROSION_ITERATIONS 1
+#define NUM_DILATION_ITERATIONS 5
 #pragma once
+
 // dataclass representing translation , scale , and rotationally invaraint feature vector for regions in image
 class RegionFeatureVector{
     public:
@@ -89,5 +92,5 @@ cv::Mat drawFeatures(const cv::Mat& image, const cv::Mat& regionMap, int regionI
 void runObjectRecognition(std::string imgPath, bool saveFeatures = false);
 
 // function that cleans up the mask by removing small regions. both here for comparison
-cv::Mat cleanupSlow(const cv::Mat& mask);
-cv::Mat cleanupFast(const cv::Mat& mask);
+cv::Mat cleanupSimple(const cv::Mat& mask, int numErosionIterations = NUM_EROSION_ITERATIONS, int numDilationIterations = NUM_DILATION_ITERATIONS);
+cv::Mat cleanupGrassfire(const cv::Mat& mask, int numErosionIterations = NUM_EROSION_ITERATIONS, int numDilationIterations = NUM_DILATION_ITERATIONS);
