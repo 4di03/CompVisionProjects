@@ -87,3 +87,7 @@ RegionFeatureVector getObjectFeatures(const cv::Mat& image);
 cv::Mat drawFeatures(const cv::Mat& image, const cv::Mat& regionMap, int regionId);
 
 void runObjectRecognition(std::string imgPath, bool saveFeatures = false);
+
+// function that cleans up the mask by removing small regions. both here for comparison
+cv::Mat cleanupSlow(const cv::Mat& mask);
+cv::Mat cleanupFast(const cv::Mat& mask);

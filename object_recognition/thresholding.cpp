@@ -81,11 +81,12 @@ cv::Mat darkenSaturatedAreas(const cv::Mat& image, float brightnessFactor){
 
 
 /**
+ * OLDER VERSION OF CODE NOT IN USE.
  * Applies opening (erosion followed by dilation) to the mask to remove noise.
  * @param mask The mask to dilate (1 channel uchar image).
  * @return The processed (eroded and then dilated) mask (1 channel uchar image).
  */
-cv::Mat cleanup(const cv::Mat& mask){
+cv::Mat cleanupSlow(const cv::Mat& mask){
     cv::Mat dilated = mask.clone();
 
     // Define a 4-connected structuring element (cross-shaped kernel)
@@ -109,6 +110,175 @@ cv::Mat cleanup(const cv::Mat& mask){
     return dilated;
 
 }
+
+/**
+ * Applies erosion or dilation to the mask using the distance transform.
+ * Basically, we look at the number at each pixel in the distance transform and if it is less than or equal to numIterations, it erodes or dilates the pixel.
+ * 
+ * @param mask The mask to dilate (1 channel uchar image).
+ * @param distanceTransform The distance transform of the mask.
+ * @param erode Whether to erode or dilate. True for erode, false for dilate.
+ * @param numIterations The number of iterations to run the algorithm for.
+ * @return The processed (eroded or dilated) mask (1 channel uchar image).
+ */
+cv::Mat  morphologyWithDistanceTransform(const cv::Mat& mask, const cv::Mat& distanceTransform, bool erode, int numIterations){
+    cv::Mat result = mask.clone();
+
+
+    for (int i = 0; i < distanceTranform.rows; i++){
+        unsigned char* maskRow = mask.ptr<unsigned char>(i);
+        unsigned char* distanceTransformRow = distanceTransform.ptr<unsigned char>(i);
+        for (int j =0; j < distanceTransform.cols; j++){
+
+            if (distanceTransformRow[j] <= numIterations){
+                if (erode){
+                    result.at<unsigned char>(i,j) = 255; // erode it by making it background
+                }else{ 
+                    result.at<unsigned char>(i,j) = 0; // dilate it by making it foreground
+                }
+            }
+            
+        }
+    }
+
+    return result;
+
+}
+
+
+/**
+ * Uses grassfire algorithm to compute the distance transform of the mask.
+ * @param mask The mask to dilate (1 channel uchar image). 255 for background, 0 for foreground.
+ * @param kernel The kernel to use for erosion/dilation.
+ * @param erode Whether to erode or dilate. True for erode, false for dilate.
+ * @return The distance transform of the mask (1 channel uchar image), that tells you in what iteration the pixel will be eroded or dilated.
+ **/
+cv::Mat computeDistanceTransform(const cv::Mat& mask, const cv::Mat& kernel, bool erode){
+    cv::Mat distanceTransform;
+    distanceTransform.create(mask.size(), CV_8UC1);
+
+    // set foreground pixels to 1 and background pixels to 0
+    for (int i = 0; i < mask.rows; i++){
+        unsigned char* maskRow = mask.ptr<unsigned char>(i);
+        unsigned char* distanceTransformRow = distanceTransform.ptr<unsigned char>(i);
+        for (int j = 0; j < mask.cols; j++){
+            distanceTransformRow[j] = maskRow[j] == 0 ? 1 : 0;
+        }
+    }
+
+    int n = kernel.rows;
+    int m = kernel.cols;
+
+    if (n!=m || m != 3){
+        std::cout << "Error: Kernel must be 3x3" << std::endl;
+        exit(-1);
+    }
+
+
+    // compute distance transform
+    for (int i = 0; i < mask.rows; i++){
+        unsigned char* maskRow = mask.ptr<unsigned char>(i);
+        unsigned char* distanceTransformRow = distanceTransform.ptr<unsigned char>(i);
+        for (int j = 0; j < mask.cols; j++){
+            bool isForeground = maskRow[j] == 0;
+
+
+            if (isForeground == erode){ // if we are eroding, we only need to mark the foreground pixels, or if we are dilating, we only need to mark the background pixels
+    != 255
+                int minVal = INT_MAX;
+                // look at top left corner of kernel
+                    for (int k = -1; k < 0; k++){
+                        for (int l = -1; l < 0; l++){
+
+                            if (i + k < 0 || i + k >= mask.rows || j + l < 0 || j + l >= mask.cols || kernel.at<unsigned char>(k+1,l+1) == 0){
+                                continue;
+                            }
+                            minVal = std::min(minVal, 1+ distanceTransform.at<unsigned char>(i+k, j+l));
+                    }
+                }
+
+                distanceTransformRow[j] =  minVal; 
+                
+            } else{
+                distanceTransformRow[j] = 0;
+            }
+        }
+    }
+
+
+    for (int i = mask.rows-1; i>= 0; i--){
+        unsigned char* maskRow = mask.ptr<unsigned char>(i);
+        unsigned char* distanceTransformRow = distanceTransform.ptr<unsigned char>(i);
+        for (int j = mask.cols - 1; j >= 0; j--){
+
+            bool isForeground = maskRow[j] == 0;
+
+
+            if (isForeground == erode){
+                
+                int minVal = INT_MAX; // if the DT pixel is unset (0), we set it to INT_MAX so that we can set it to 1 if needed, else we consider the pixels value in the min calcualtion
+                // look at bottom right corner of kernel
+                    for (int k = 0; k <= 1; k++){
+                        for (int l = 0; l <= 1; l++){
+
+                            if (i + k < 0 || i + k >= mask.rows || j + l < 0 || j + l >= mask.cols ||kernel.at<unsigned char>(k+1,l+1) == 0 || mask.at<unsigned char>(i+k, j+l) == 0){
+                                continue;
+                            }
+                            minVal = std::min(minVal, 1+ distanceTransform.at<unsigned char>(i+k, j+l));
+                    }
+                }
+
+                distanceTransformRow[j] = std::min(minVal, distanceTransformRow[j]); 
+            }
+            // no need to handle else as the other pass took care of it
+        }
+    }
+    return distanceTransform;
+}
+/**
+ * uses grassfire algorithm to do the erosion and dilation in one pass.
+ * @param mask The mask to dilate (1 channel uchar image). 255 for background, 0 for foreground.
+ * @param kernel The kernel to use for erosion/dilation.
+ * @param numIterations The number of iterations to run the algorithm for.
+ * @param erode Whether to erode or dilate. True for erode, false for dilate.
+ * @return The processed (eroded or dilated) mask (1 channel uchar image).
+ * 
+ **/
+cv::Mat grassfireMorphology(const cv::Mat& mask, const cv::Mat& kernel,int numIterations, bool erode){
+
+    cv::Mat distanceTransform = computeDistanceTransform(mask, kernel, erode);
+    return  morphologyWithDistanceTransform(mask, distanceTransform, erode, numIterations);
+}
+
+/**
+ * Applies opening (erosion followed by dilation) to the mask to remove noise.
+ * Uses grassfire algorithm to do the erosion and dilation in one pass.
+ * @param mask The mask to dilate (1 channel uchar image).
+ * @return The processed (eroded and then dilated) mask (1 channel uchar image).
+ */
+cv::Mat cleanupFast(const cv::Mat& mask){
+    cv::Mat dilated = mask.clone();
+
+    // Define a 4-connected structuring element (cross-shaped kernel)
+    cv::Mat erosionKernel = (cv::Mat_<uchar>(3,3) <<
+    0, 1, 0,
+    1, 1, 1,
+    0, 1, 0);  
+
+    dilated = grassfireMorphology(dilated,erosionKernel,NUM_EROSION_ITERATIONS, true);
+
+    // Define a 8-connected structuring element (cross-shaped kernel)
+    cv::Mat dilationKernel = (cv::Mat_<uchar>(3,3) <<
+    1, 1, 1,
+    1, 1, 1,
+    1, 1, 1);  
+
+    dilated = grassfireMorphology(dilated,dilationKernel,NUM_DILATION_ITERATIONS, false);
+
+    return dilated;
+
+}
+
 
 /**
  * Checks if two pixels are equal.
@@ -439,7 +609,7 @@ RegionData getRegionMap(const cv::Mat& image){
         }
     }
 
-    mask = cleanup(mask);
+    mask = cleanupFast(mask);
     return getRegionMapFromForegroundMask(image, mask);
 
 }

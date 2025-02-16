@@ -14,6 +14,9 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Use strict standard compliance
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
+# create a library for thresholding
+add_library(thresholding thresholding.cpp kmeans.cpp utils.cpp classify.cpp)
+
 
 
 add_executable(image_or image_or.cpp thresholding.cpp kmeans.cpp utils.cpp)
@@ -21,11 +24,11 @@ add_executable(image_dir_or image_dir_or.cpp thresholding.cpp kmeans.cpp utils.c
 add_executable(real_time_or real_time_or.cpp thresholding.cpp kmeans.cpp utils.cpp classify.cpp)
 add_executable(classify runClassification.cpp classify.cpp utils.cpp thresholding.cpp kmeans.cpp)
 add_executable(compareDistanceMetrics compareDistanceMetrics.cpp classify.cpp utils.cpp thresholding.cpp kmeans.cpp)
-
-target_link_libraries(image_dir_or ${OpenCV_LIBS})
-target_link_libraries(image_or ${OpenCV_LIBS})
-target_link_libraries(real_time_or ${OpenCV_LIBS})
-target_link_libraries(classify ${OpenCV_LIBS})
-target_link_libraries(compareDistanceMetrics ${OpenCV_LIBS})
-
+add_executable(test_cleanup testGrassfire.cpp thresholding.cpp kmeans.cpp utils.cpp classify.cpp)
+target_link_libraries(image_dir_or ${OpenCV_LIBS} thresholding)
+target_link_libraries(image_or ${OpenCV_LIBS} thresholding)
+target_link_libraries(real_time_or ${OpenCV_LIBS} thresholding)
+target_link_libraries(classify ${OpenCV_LIBS} thresholding)
+target_link_libraries(compareDistanceMetrics ${OpenCV_LIBS} thresholding)
+target_link_libraries(test_cleanup ${OpenCV_LIBS} thresholding)
 
