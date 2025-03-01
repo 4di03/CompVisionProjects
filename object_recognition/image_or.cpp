@@ -7,7 +7,7 @@
 */
 #include <opencv2/opencv.hpp>
 #include <iostream>
-#include "thresholding.h"
+#include "objectRecognition.h"
 
 /**
  * Runs object recognition on the given image.

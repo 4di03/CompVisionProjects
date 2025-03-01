@@ -21,12 +21,22 @@ To run the matching application:
 
 ```
 cd build
-./image_dir_or <image_path>
-./image_dir_or <directory of iamges>
+./image_or <image_path>
+./image_dir_or <directory of iamges> --save_features
 ./real_time_or # press the N key to save a feature vector for the frame
+./classify <path_to_feature_db> <path_to_images_db>
+./compareDistanceMetrics <path_to_feature_db> <path_to_images_db>
+./test_cleanup
 ```
-Running this command will output the resulting images and features to the `output` folder created in the same directory it is called.
+
+Please see `CMakeLists.txt` to see which files correspond to which executables (look for "add_executable").
+
+
+Running `./image_dir_or` this command will output the resulting images and features to the `image_features` folder (if run with the --save_features flag) created in the same directory it is called.
 get image path> <directory of image dataset> <N>
+
+Running `./classify` or `./compareDistanceMetrics` will output predictions to the created `predictions` folder. You can then run `confusion_matrix.ipynb` with the PREDICTIONS_FOLDER_PATH updated accordingly
+
 
 ### Training
 
@@ -45,25 +55,16 @@ If you'd like to run classification with all 5 distance metrics, run:
 
 The output will be placed in `predictions/<distance_method_name>` relative to where the code was ran.
 
+### Testing Extensions
+
+If you'd like to test the grassfire algorithm , simply run `./test_cleanup` and you can see
+the results in the created `test_output` folder, as well as results in the terminal log.
 
 ### Demo
 
-Please follow this [link](https://drive.google.com/file/d/1bUER57udyDUkTDl73tSUmmATqzM8e60z/view?usp=sharing) to see a demo.
+Please follow this [link](https://drive.google.com/file/d/1bUER57udyDUkTDl73tSUmmATqzM8e60z/view?usp=sharing) to see a demo of the application run on a real time video feed.
 
 
 ## Time Travel
 
 No time travel days will be used.
-
-
-I decided to implement thresholding from scratch, including the kmeans implementation. The other methods were also implemented mostly from scratch.
-Furthermore, I opt to build a real-time object recognizer (`real_time_or` binary), but have also included a binary (`image_or`) that can be used for running object recognition on an individual image for testing purposes.
-
-
-The 5 objects I chose to identify are my wallet, my nail clipper, a key, a quarter, and a nintendo switch controller
-
-
-
-Todos:
-Task 1 
-    - put images of segmentation in report

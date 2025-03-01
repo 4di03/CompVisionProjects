@@ -1,3 +1,11 @@
+/**
+ * Adithya Palle
+ * Feb 15 2025
+ * CS 5330 - Project 3 : Real-time 2D Object Recognition
+ * 
+ * Header file for miscellaneous utility functions.
+ */
+
 #include <iostream>
 #pragma once
 

@@ -3,14 +3,14 @@
  * Feb 13 2025
  * CS 5330 - Project 3 : Real-time 2D Object Recognition
  * 
- * Entrypoint for program that allows you to classify objects in a directory using a known image database.
+ * Entrypoint for program that allows you to classify a directory of object images in a directory using a known image database.
  */
 #include "classify.h"
 
 /**
  * Runs classification on objects in a directory , given a known image database, and puts the results in the output directory.
  * @param argc The number of command line arguments.
- * @param argv The command line arguments. The first argument is the path to the directory containing image features.
+ * @param argv The command line arguments. The first argument is the path to the directory containing image features. The second argument is the path to the directory containing the unknown images.
  */
 int main(int argc, char** argv){
     

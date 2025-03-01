@@ -3,7 +3,7 @@
 * Feb 7 2025
 * CS 5330 - Project 3 : Real-time 2D Object Recognition
 * 
-* This file is the entrypoint for the program that classification with a known image database and a unknown image database.
+* This file is the entrypoint for the program that runs classification with a known image feature database and a unknown image database.
 */
 #include <opencv2/opencv.hpp>
 #include <iostream>
@@ -18,7 +18,7 @@
 #include <cmath>
 #include <fstream>
 #include "utils.h"
-#include "thresholding.h"
+#include "objectRecognition.h"
 #include "classify.h"
 #define PREDICTIONS_FOLDER "predictions"
 

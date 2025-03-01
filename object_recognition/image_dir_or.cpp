@@ -16,12 +16,12 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include "utils.h"
-#include "thresholding.h"
+#include "objectRecognition.h"
 
 /**
  * Runs object recognition on objects ina directory and saves to output
  * @param argc The number of command line arguments.
- * @param argv The command line arguments. The first argument is the path to the directory.
+ * @param argv The command line arguments. The first argument is the path to the directory. The 2nd is an optional flag that saves features to `image_features` if it is given.
  */
 int main(int argc, char** argv){
     

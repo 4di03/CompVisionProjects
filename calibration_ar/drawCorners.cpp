@@ -5,7 +5,6 @@
  * Main file for program that draws corners on video feed if it finds the chessboard pattern in the video.
  */
 #include "calibration.h"
-#define WIN_SIZE 11 // size of search window for corner refinement algorithm
 
 
 
@@ -40,12 +39,7 @@ int main(){
         if (patternFound)
         {
             numCornersFound = corners.size();
-            // improve the found corners' coordinate accuracy for chessboard
 
-            cv::Mat viewGray;
-            cvtColor(frame, viewGray, cv::COLOR_BGR2GRAY);
-            cornerSubPix( viewGray, corners, cv::Size(WIN_SIZE,WIN_SIZE),
-                cv::Size(-1,-1), cv::TermCriteria( cv::TermCriteria::EPS+cv::TermCriteria::COUNT, 30, 0.0001 ));
             drawChessboardCorners(frame,  PATTERN_SIZE, cv::Mat(corners), patternFound);
         }else{
             numCornersFound = 0;

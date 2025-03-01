@@ -3,9 +3,9 @@
  * Feb 7 2025
  * CS 5330 - Project 3 : Real-time 2D Object Recognition
  *
- * Implementation file for the thresholding function used to segment the object.
+ * Implementation file for all core object recognition functionality. This includes segmentation, feature extraction, cleanup , display, and more.
  */
-#include "thresholding.h"
+#include "objectRecognition.h"
 #include "kmeans.h"
 #include <iostream>
 #include <algorithm>
@@ -182,24 +182,6 @@ cv::Mat computeDistanceTransform(const cv::Mat &mask, const cv::Mat &kernel, boo
         exit(-1);
     }
 
-    // print the mask
-    // std::cout << "Mask" << std::endl;
-    // for (int i = 0; i < mask.rows; i++){
-    //     for (int j = 0; j < mask.cols; j++){
-    //         std::cout << static_cast<int>(mask.at<unsigned char>(i,j)) << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
-
-    // // print the inital distance transform
-    // std::cout << "Initial Distance Transform" << std::endl;
-    // for (int i = 0; i < distanceTransform.rows; i++){
-    //     for (int j = 0; j < distanceTransform.cols; j++){
-    //         std::cout << static_cast<int>(distanceTransform.at<unsigned char>(i,j)) << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
-
     // directions we scan for the first pass (pixels to the left and in the 3 slots above)
     std::vector<std::pair<int, int>> leftDirections = {std::pair<int, int>(-1, -1),
                                                        std::pair<int, int>(-1, 0),
@@ -242,18 +224,6 @@ cv::Mat computeDistanceTransform(const cv::Mat &mask, const cv::Mat &kernel, boo
         }
     }
 
-    // print the distance transform after first pass
-
-    // std::cout << "Distance Transform after first pass" << std::endl;
-    // for (int i = 0; i < distanceTransform.rows; i++)
-    // {
-    //     for (int j = 0; j < distanceTransform.cols; j++)
-    //     {
-    //         std::cout << static_cast<int>(distanceTransform.at<unsigned char>(i, j)) << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
-
     // directions we scan for the second pass (pixels to the right and in the 3 slots below)
     std::vector<std::pair<int, int>> rightDirections = {std::pair<int, int>(1, 1),
                                                         std::pair<int, int>(1, 0),
@@ -290,16 +260,6 @@ cv::Mat computeDistanceTransform(const cv::Mat &mask, const cv::Mat &kernel, boo
         }
     }
 
-    // print the distance transform after second pass
-    // printf("Distance Transform after second pass\n");
-    // for (int i = 0; i < distanceTransform.rows; i++)
-    // {
-    //     for (int j = 0; j < distanceTransform.cols; j++)
-    //     {
-    //         std::cout << static_cast<int>(distanceTransform.at<unsigned char>(i, j)) << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
 
     return distanceTransform;
 }
@@ -317,16 +277,6 @@ cv::Mat grassfireMorphology(const cv::Mat &mask, const cv::Mat &kernel, int numI
 
     cv::Mat distanceTransform = computeDistanceTransform(mask, kernel, erode);
 
-    // print distance transform
-    // std::cout << "Distance Transform" << std::endl;
-    // for (int i = 0; i < distanceTransform.rows; i++)
-    // {
-    //     for (int j = 0; j < distanceTransform.cols; j++)
-    //     {
-    //         std::cout << static_cast<int>(distanceTransform.at<unsigned char>(i, j)) << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
 
     return morphologyWithDistanceTransform(mask, distanceTransform, erode, numIterations);
 }

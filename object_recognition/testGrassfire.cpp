@@ -13,7 +13,7 @@
 
 #include <iostream>
 #include <opencv2/opencv.hpp>
-#include "thresholding.h"
+#include "objectRecognition.h"
 #include <random>
 #include <sys/stat.h>
 #include <sys/types.h>

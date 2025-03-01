@@ -1,3 +1,10 @@
+#[[
+* Adithya Palle
+* Feb 15 2025
+* CS 5330 - Project 3 : Real-time 2D Object Recognition
+* 
+* Cmake file which describes how to generate the build system for the object recognition project. This needs to be run before make only when changes are made to this file.
+]]
 cmake_minimum_required(VERSION 3.10)
 
 project(ObjectRecognition)
@@ -15,7 +22,7 @@ find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 # create a library for object_recognition
-add_library(object_recognition thresholding.cpp kmeans.cpp utils.cpp classify.cpp)
+add_library(object_recognition objectRecognition.cpp kmeans.cpp utils.cpp classify.cpp)
 
 # Ensure object_recognition's headers are available to dependent targets
 target_include_directories(object_recognition PUBLIC ${CMAKE_SOURCE_DIR})

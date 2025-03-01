@@ -10,3 +10,4 @@ video_special_effects/depthAnything/onnxruntime-osx-x86_64-1.20.1/
 *.csv
 *.jpeg
 *.onnx
+**/Proj03Examples

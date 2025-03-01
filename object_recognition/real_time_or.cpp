@@ -13,12 +13,14 @@
 #include <thread>
 #include <atomic>
 #include "classify.h"
-#include "thresholding.h"
+#include "objectRecognition.h"
 #define FEATURE_DATA_LOCATION "image_features"
 
 
 /**
- * Runs object recognition on a webcam feed.
+ * Runs object recognition on a webcam feed, producing a labeled image of the objects in the feed, a oriented bounding box image, and a segmented image.
+ * @param argc The number of command line arguments.
+ * @param argv The command line arguments. There are none
  */
 int main(int argc, char** argv) {
     mkdir(FEATURE_DATA_LOCATION, 0777);
@@ -30,7 +32,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    std::cout << "Press q to exit" << std::endl;
+    std::cout << "Ctrl+C to exit" << std::endl;
 
     cv::Mat rawFrame;
 
@@ -61,7 +63,9 @@ int main(int argc, char** argv) {
                 largestRegionSize = size;
                 largestRegionId = id;
             }
-        }
+        }   
+
+        cv::imshow("Raw Frame", rawFrame);
 
         cv::Mat thresholdedFrame = segmentObjects(rawFrame, regionMap);
         cv::imshow("Segmented Frame", thresholdedFrame);
@@ -74,10 +78,8 @@ int main(int argc, char** argv) {
         cv::imshow("Labeled Image", labeledImage);
 
         // Check for key press
-        char key = cv::waitKey(1); // Read and reset keyPressed
-        if (key == 'q') {
-            break;
-        } else if (key == 'n') {
+        char key = cv::waitKey(1); 
+        if (key == 'n') {
             std::string label;
             std::cout << "Enter label: ";
             std::cin >> label;

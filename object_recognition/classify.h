@@ -3,7 +3,7 @@
 * Feb 7 2025
 * CS 5330 - Project 3 : Real-time 2D Object Recognition
 * 
-* This file is the entrypoint for the program that classification with a known image database and a unknown image database.
+* This file is the header file for functionality to run classification with a known image feature database and a unknown image database.
 */
 #include <opencv2/opencv.hpp>
 #include <iostream>
@@ -16,11 +16,11 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include "utils.h"
-#include "thresholding.h"
+#include "objectRecognition.h"
 #define PREDICTIONS_FOLDER "predictions"
 #pragma once
 
-
+// represents a database of labeled feature vectors
 struct ObjectFeatures{
     std::vector<std::string> names;
     std::vector<std::vector<float>> features;
@@ -53,6 +53,9 @@ struct ObjectFeatures{
         return stdDevs;
     };
 
+    /**
+     * Gets the number of samples in the database.
+     */
     int size(){
         return features.size();
     }
@@ -80,7 +83,7 @@ class DistanceMetric{
             
             return typeid(*this).name();
         }
-
+        // virtual destructor
         virtual ~DistanceMetric() = default;
 
 };

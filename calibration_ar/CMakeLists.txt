@@ -29,6 +29,7 @@ target_include_directories(calibration PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(calibration PUBLIC ${OpenCV_LIBS})
 
 add_executable(draw_corners drawCorners.cpp)
+add_executable(calibrate runCalibration.cpp)
 
 target_link_libraries(draw_corners PRIVATE calibration)
-
+target_link_libraries(calibrate PRIVATE calibration)

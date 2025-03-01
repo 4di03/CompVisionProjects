@@ -3,7 +3,7 @@
  * Feb 13 2025
  * CS 5330 - Project 3 : Real-time 2D Object Recognition
  * 
- * Entrypoint for program that allows you to classify objects in a directory using a known image database.
+ * Entrypoint for program that allows you to classify objects in a directory using a known image database with a variety of different distance metrics.
  */
 #include "classify.h"
 
@@ -15,7 +15,7 @@
 int main(int argc, char** argv){
     
     if (argc < 3){
-        std::cout << "Usage: ./classify <path_to_known_db> <path_to_unknown_images>" << std::endl;
+        std::cout << "Usage: ./compareDistanceMetrics <path_to_known_db> <path_to_unknown_images>" << std::endl;
         return -1;
     }
 

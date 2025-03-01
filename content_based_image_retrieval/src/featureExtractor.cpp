@@ -219,11 +219,11 @@ CompositeFeatureExtractor* noBlackTextureHistogram = new CompositeFeatureExtract
 
 // Map of feature extractors
 std::map<std::string, FeatureExtractor*> featureExtractorMap = {
-    {"CenterSquare", new CenterSquareFeatureExtractor(7)},
-    {"Histogram3D", new Histogram3D(8)},
-    {"MultiHistogram", new MultiFeatureExtractor({new Histogram2D(8), new Histogram3D(8)})},
-    {"TextureAndColor", new MultiFeatureExtractor({new Histogram3D(8), textureHistogram})},
-    {"Resnet", new ResnetFeatureExtractor()},
-    {"DepthColor", new CompositeFeatureExtractor({new ForegroundExtractor(), new Histogram3D(8, false)})},
-    {"EdgeUniformity", new CompositeFeatureExtractor({new TextureExtractor(), new FFTExtractor(true)})},
+    {"CenterSquare", new CenterSquareFeatureExtractor(7)}, // task 1
+    {"Histogram3D", new Histogram3D(8)}, // task 2
+    {"MultiHistogram", new MultiFeatureExtractor({new Histogram2D(8), new Histogram3D(8)})}, // task 3
+    {"TextureAndColor", new MultiFeatureExtractor({new Histogram3D(8), textureHistogram})}, // task 4
+    {"Resnet", new ResnetFeatureExtractor()}, //  task 5 + 6
+    {"DepthColor", new CompositeFeatureExtractor({new ForegroundExtractor(), new Histogram3D(8, false)})}, // task 7
+    {"EdgeUniformity", new CompositeFeatureExtractor({new TextureExtractor(), new FFTExtractor(true)})}, // extension
 };

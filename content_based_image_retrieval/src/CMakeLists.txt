@@ -25,9 +25,9 @@ message(STATUS "DEPTH_ANYTHING_DIR: ${DEPTH_ANYTHING_DIR}")
 include_directories(${DEPTH_ANYTHING_DIR}/da2-code)
 
 
-add_executable(img_retrieval src/get_matches.cpp src/find_similar_images.cpp src/distanceMetric.cpp src/featureExtractor.cpp ${DEPTH_ANYTHING_DIR}/da2-code/DA2Network.hpp)
+add_executable(img_retrieval get_matches.cpp find_similar_images.cpp distanceMetric.cpp featureExtractor.cpp ${DEPTH_ANYTHING_DIR}/da2-code/DA2Network.hpp)
 
-add_executable(compare_methods src/compare_methods.cpp src/distanceMetric.cpp src/featureExtractor.cpp src/find_similar_images.cpp ${DEPTH_ANYTHING_DIR}/da2-code/DA2Network.hpp)
+add_executable(compare_methods compare_methods.cpp distanceMetric.cpp featureExtractor.cpp find_similar_images.cpp ${DEPTH_ANYTHING_DIR}/da2-code/DA2Network.hpp)
 
 target_link_libraries(img_retrieval ${OpenCV_LIBS} onnxruntime)
 target_link_libraries(compare_methods ${OpenCV_LIBS} onnxruntime)
