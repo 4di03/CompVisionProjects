@@ -27,9 +27,10 @@ add_library(calibration calibration.cpp)
 # Ensure object_recognition's headers are available to dependent targets
 target_include_directories(calibration PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(calibration PUBLIC ${OpenCV_LIBS})
-
 add_executable(draw_corners drawCorners.cpp)
 add_executable(calibrate runCalibration.cpp)
+add_executable(get_camera_pos getCameraPosition.cpp)
 
 target_link_libraries(draw_corners PRIVATE calibration)
 target_link_libraries(calibrate PRIVATE calibration)
+target_link_libraries(get_camera_pos PRIVATE calibration)
