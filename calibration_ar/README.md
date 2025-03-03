@@ -26,6 +26,11 @@ cd build
 ./get_camera_pos <path_to_calibration_yaml> # displays the rotation and translation of the camera relative to the chessboard, given a file with the camera matrix in it
 ```
 
+### Demo
+
+Here is the [link](https://drive.google.com/file/d/1NfKYKOSyyKJFOculv36Y6CwRYzJjoWFY/view?usp=sharing) to a demo of ./get_camera_pos which shows how the translation and rotation
+vectors change based on the change in rotation and translation of the chessboard.
+
 
 ## Time Travel
 

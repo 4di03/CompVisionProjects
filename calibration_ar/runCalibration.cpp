@@ -77,9 +77,14 @@ int main(){
     0, 0, 1);
     std::vector<double> distCoeffs = std::vector<double>(NUM_DISTORTION_COEFFS, 0);
 
-
+    // clear calibration images if they exist
+    std::system("rm -rf calibration_images/*");
 
     mkdir("calibration_images", 0777);
+
+
+
+
     while (true){
         cap >> frame;
 
@@ -101,16 +106,14 @@ int main(){
                 corners.clear();
                 worldPoints.clear();
                 numCornersFound = 0;                
-                continue;
+            }else{
+                worldPoints = calculateWorldPoints(PATTERN_SIZE);
+
+
+                drawChessboardCorners(frame,  PATTERN_SIZE, cv::Mat(corners), patternFound);
+
+                annotateWorldPoints(frame, worldPoints, corners);
             }
-
-            worldPoints = calculateWorldPoints(PATTERN_SIZE);
-
-
-            drawChessboardCorners(frame,  PATTERN_SIZE, cv::Mat(corners), patternFound);
-
-            annotateWorldPoints(frame, worldPoints, corners);
-
 
         }else{
             numCornersFound = 0;

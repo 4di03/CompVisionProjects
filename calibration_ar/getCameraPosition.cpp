@@ -46,9 +46,34 @@ int main(int argc, char** argv){
     cv::Mat cameraMatrix;
     std::vector<double> distCoeffs;
     cv::FileStorage fs(calibrationYamlPath, cv::FileStorage::READ);
-    fs["camera_matrix"] >> cameraMatrix;
-    fs["distortion_coefficients"] >> distCoeffs;
+
+    if (!fs.isOpened()){
+        std::cerr << "Error opening calibration yaml file" << std::endl;
+        return -1;
+    }
+
+    fs["cameraMatrix"] >> cameraMatrix;
+
+    if (cameraMatrix.empty()){
+        std::cerr << "Error reading camera matrix from yaml" << std::endl;
+        return -1;
+    }
+
+    fs["distCoeffs"] >> distCoeffs;
+
+    if (distCoeffs.empty()){
+        std::cerr << "Error reading distortion coefficients from yaml" << std::endl;
+        return -1;
+    }
+
+    
     fs.release();
+
+    cv::Mat distCoeffsMat(1, distCoeffs.size(), CV_64F, distCoeffs.data());
+
+    std:: cout << "Camera Matrix: " << cameraMatrix << std::endl;
+    std:: cout << "Distortion Coefficients: " << distCoeffsMat << std::endl;
+
 
     while (true){
         cap >> frame;
@@ -70,15 +95,16 @@ int main(int argc, char** argv){
         {
             std::vector<cv::Vec3f> worldPoints = calculateWorldPoints(PATTERN_SIZE);
             cv::Mat rvec, tvec;
-            cv::solvePnP(worldPoints, corners, cameraMatrix, distCoeffs, rvec, tvec);
-            cv::Mat rotationMatrix;
-            cv::Rodrigues(rvec, rotationMatrix);
-            cv::Mat cameraPosition = -rotationMatrix.t() * tvec;
-            // draw camera position , rotation and translation on frame
-            cv::putText(frame, "Camera Position: " + std::to_string(cameraPosition.at<double>(0, 0)) + ", " + std::to_string(cameraPosition.at<double>(1, 0)) + ", " + std::to_string(cameraPosition.at<double>(2, 0)), cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
-            cv::putText(frame, "Camera Rotation: " + std::to_string(rvec.at<double>(0, 0)) + ", " + std::to_string(rvec.at<double>(1, 0)) + ", " + std::to_string(rvec.at<double>(2, 0)), cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
-            cv::putText(frame, "Camera Translation: " + std::to_string(tvec.at<double>(0, 0)) + ", " + std::to_string(tvec.at<double>(1, 0)) + ", " + std::to_string(tvec.at<double>(2, 0)), cv::Point(10, 120), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
+            cv::solvePnP(worldPoints, corners, cameraMatrix, distCoeffsMat, rvec, tvec);
+
+            // draw camera rotation and translation on frame , denoted with (Rx, Ry, Rz) and (Tx, Ty, Tz) respectively
+            cv::putText(frame, "Rx: " + std::to_string(rvec.at<double>(0)) + ", Ry: " + std::to_string(rvec.at<double>(1)) + ", Rz: " + std::to_string(rvec.at<double>(2)) + ")", cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
+            cv::putText(frame, "Tx: " + std::to_string(tvec.at<double>(0)) + ", Ty: " + std::to_string(tvec.at<double>(1)) + ", Tz: " + std::to_string(tvec.at<double>(2)) + ")", cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
             
         }
 
+        cv::imshow("Frame", frame);
+        cv::waitKey(1);
+
+    }
 }
