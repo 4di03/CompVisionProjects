@@ -7,3 +7,5 @@ bool extractCorners(const cv::Mat& chessBoardImage, std::vector<cv::Point2f>& co
 
 
 std::vector<cv::Vec3f> calculateWorldPoints(const cv::Size& patternSize = PATTERN_SIZE);
+
+void displayCoordinateAxes(cv::Mat& img,  const cv::Mat& cameraMatrix, const cv::Mat& distCoeffsMat, const cv::Mat&  rvec, const cv::Mat&  tvec);

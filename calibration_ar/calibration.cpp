@@ -2,6 +2,35 @@
 #define WIN_SIZE 11 // size of search window for corner refinement algorithm
 
 
+// Global 3D axis points (constant throughout the program)
+std::vector<cv::Point3f> axisPoints = {
+    cv::Point3f(0, 0, 0), // Origin
+    cv::Point3f(1, 0, 0), // X-axis
+    cv::Point3f(0, 1, 0), // Y-axis
+    cv::Point3f(0, 0, 1)  // Z-axis
+};
+
+
+/**
+ * Displays the 3D coordinate axes of the world coordinate system on the chessboard.
+ * @param img The image to display the coordinate axes on.
+ * @param cameraMatrix The camera matrix.
+ * @param distCoeffsMat The distortion coefficients matrix.
+ * @param rvec The rotation vector.
+ * @param tvec The translation vector.
+ */
+void displayCoordinateAxes(cv::Mat& img,  const cv::Mat& cameraMatrix, const cv::Mat& distCoeffsMat, const cv::Mat&  rvec, const cv::Mat&  tvec){
+    std::vector<cv::Point2f> imagePoints;
+    cv::projectPoints(axisPoints, rvec, tvec, cameraMatrix, distCoeffsMat, imagePoints);
+
+    // draw arrowed lines between the origin and the x, y, z axes
+    cv::arrowedLine(img, imagePoints[0], imagePoints[1], cv::Scalar(0, 0, 255), 2); // x-axis is red
+    cv::arrowedLine(img, imagePoints[0], imagePoints[2], cv::Scalar(0, 255, 0), 2); // y-axis is green
+    cv::arrowedLine(img, imagePoints[0], imagePoints[3], cv::Scalar(255, 0, 0), 2); // z-axis is blue
+
+    return;
+
+}
 /**
  * Extracts the corners of a chessboard pattern from an image.
  * @param chessBoardImage The image containing the chessboard pattern.

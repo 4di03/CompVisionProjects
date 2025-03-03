@@ -3,13 +3,18 @@
  * February 28, 2025
  * 
  * Main file for program displays camera's translation and rotation relative to chessboard in video stream.
+ * Also visualizes the 3d axes of the worlc coordinate system on the chessboard.
  */
 #include "calibration.h"
 #define EXPECTED_FRAME_WIDTH 1280
 #define EXPECTED_FRAME_HEIGHT 720
 
+
+
+
 /**
- * displays camera's translation and rotation relative to chessboard in video stream.
+ * Displays camera's translation and rotation relative to chessboard in video stream.
+ * Also visualizes the 3d axes of the worlc coordinate system on the chessboard.
  * @param argc The number of command line arguments.
  * @param argv The command line arguments. The first is the path to the calibration yaml file.
  */
@@ -100,6 +105,9 @@ int main(int argc, char** argv){
             // draw camera rotation and translation on frame , denoted with (Rx, Ry, Rz) and (Tx, Ty, Tz) respectively
             cv::putText(frame, "Rx: " + std::to_string(rvec.at<double>(0)) + ", Ry: " + std::to_string(rvec.at<double>(1)) + ", Rz: " + std::to_string(rvec.at<double>(2)) + ")", cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
             cv::putText(frame, "Tx: " + std::to_string(tvec.at<double>(0)) + ", Ty: " + std::to_string(tvec.at<double>(1)) + ", Tz: " + std::to_string(tvec.at<double>(2)) + ")", cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
+
+
+            displayCoordinateAxes(frame, cameraMatrix, distCoeffsMat, rvec, tvec);
             
         }
 
