@@ -3,10 +3,71 @@
  * February 28, 2025
  * 
  * Main file for program that displays a virtual object above the chessboard pattern in the video feed.
+ * Also inlcudes the extension which overlays a custom texture on to the calibration pattern.
  */
 #include "calibration.h"
 #define EXPECTED_FRAME_WIDTH 1280
 #define EXPECTED_FRAME_HEIGHT 720
+#define OVERLAY_IMAGE "/Users/adithyapalle/work/CS5330/calibration_ar/craft_table.jpeg" // change this to the path of your custom texture image
+
+
+/**
+ * Extension:
+ * Replaces the chessboard pattern with a custom texture (OVERLAY_IMAGE) using projectPoints.
+ * 
+ * @param frame The frame to overlay the texture on.
+ * @param corners The 2D corners of the chessboard pattern.
+ * @param cameraMatrix The camera matrix.
+ * @param distCoeffsMat The distortion coefficients matrix.
+ * @param rvec The rotation vector.
+ * @param tvec The translation vector.
+ */
+void overlayTexture(cv::Mat& frame, 
+    const std::vector<cv::Point2f>& corners,
+    const cv::Mat& cameraMatrix, const cv::Mat& distCoeffsMat,
+    const cv::Mat& rvec, const cv::Mat& tvec) {
+
+    static cv::Mat customImage = cv::imread(OVERLAY_IMAGE);
+    // Define the four corners of the replacement image (e.g., crafting table texture) (use the pattern size since the world units are relative to the squares on the chessboard)
+
+    float width = PATTERN_SIZE.width - 1;
+    float height = -1* (PATTERN_SIZE.height - 1); // height is negative since the y-axis decreases as you go down in row-order on the chessboard
+
+    // we add/subtract 1 to each point since the pattern only takes up the 9x6 center of the actual 10x7 chessboard
+    std::vector<cv::Point3f> texture3D = {
+    cv::Point3f(-1, 1, 0),
+    cv::Point3f(width + 1, 1, 0),
+    cv::Point3f(-1,height - 1 , 0),
+    cv::Point3f(width + 1, height - 1, 0)
+    };
+
+    // Project the 3D texture corners into the 2D image
+    std::vector<cv::Point2f> projectedCorners;
+    cv::projectPoints(texture3D, rvec, tvec, cameraMatrix, distCoeffsMat, projectedCorners);
+
+    // Define the corresponding 2D corners from the custom image
+    std::vector<cv::Point2f> imageCorners = {
+    {0, 0}, 
+    {(float) customImage.cols - 1, 0},
+    {0, (float) customImage.rows - 1},
+    {(float) customImage.cols - 1, (float) customImage.rows - 1}
+    };
+
+    // Compute the perspective transformation matrix
+    cv::Mat homography = cv::getPerspectiveTransform(imageCorners, projectedCorners);
+
+    // Warp the custom image onto the chessboard area
+    cv::Mat warpedTexture;
+    cv::warpPerspective(customImage, warpedTexture, homography, frame.size());
+
+    // Create a mask for blending
+    cv::Mat mask = cv::Mat::zeros(frame.size(), CV_8UC1);
+    std::vector<cv::Point> poly = { projectedCorners[0], projectedCorners[1], projectedCorners[3], projectedCorners[2] };
+    cv::fillConvexPoly(mask, poly, cv::Scalar(255));
+
+    // Blend the warped image onto the original frame
+    warpedTexture.copyTo(frame, mask);
+}
 
 /**
  * Represents an object as a list of its points
@@ -113,7 +174,7 @@ void addVirtualObjectToImage(const VirtualObject& object, cv::Mat& img,  const c
 int main(int argc, char** argv){
 
     if (argc != 2){
-        std::cerr << "Usage: ./get_camera_pos <path_to_calibration_yaml>" << std::endl;
+        std::cerr << "Usage: ./display_virtual_object <path_to_calibration_yaml>" << std::endl;
         return -1;
     }
 
@@ -198,6 +259,9 @@ int main(int argc, char** argv){
             std::vector<cv::Vec3f> worldPoints = calculateWorldPoints(PATTERN_SIZE);
             cv::Mat rvec, tvec;
             cv::solvePnP(worldPoints, corners, cameraMatrix, distCoeffsMat, rvec, tvec);
+
+
+            overlayTexture(frame, corners, cameraMatrix, distCoeffsMat, rvec, tvec);
 
             addVirtualObjectToImage(object, frame, cameraMatrix, distCoeffsMat, rvec, tvec);
             

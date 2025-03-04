@@ -18,6 +18,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) 
 
 # opencv setup
+set(OpenCV_DIR "/Users/adithyapalle/libs/installs/lib/cmake/opencv4") # You can remove this line if you installed opencv with homebrew , or change it if you installed it elsewhere
+
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
@@ -31,8 +33,10 @@ add_executable(draw_corners drawCorners.cpp)
 add_executable(calibrate runCalibration.cpp)
 add_executable(get_camera_pos getCameraPosition.cpp)
 add_executable(display_virtual_object displayVirtualObject.cpp)
+add_executable(detect_features detectFeatures.cpp)
 
 target_link_libraries(draw_corners PRIVATE calibration)
 target_link_libraries(calibrate PRIVATE calibration)
 target_link_libraries(get_camera_pos PRIVATE calibration)
 target_link_libraries(display_virtual_object PRIVATE calibration)
+target_link_libraries(detect_features PRIVATE calibration)
