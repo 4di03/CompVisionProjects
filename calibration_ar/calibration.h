@@ -1,3 +1,10 @@
+/**
+ * Adithya Palle
+ * March 3, 2025
+ * 
+ * Header file for camera calibration and relatred display functions
+ */
+#include
 #include <opencv2/opencv.hpp>
 #include <vector>
 #define PATTERN_SIZE cv::Size(9, 6)

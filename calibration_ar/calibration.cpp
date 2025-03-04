@@ -1,3 +1,9 @@
+/**
+ * Adithya Palle
+ * March 3, 2025
+ * 
+ * Implementation file for camera calibration and relatred display functions
+ */
 #include "calibration.h"
 #define WIN_SIZE 11 // size of search window for corner refinement algorithm
 

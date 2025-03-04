@@ -260,7 +260,7 @@ int main(int argc, char** argv){
             cv::Mat rvec, tvec;
             cv::solvePnP(worldPoints, corners, cameraMatrix, distCoeffsMat, rvec, tvec);
 
-
+            // overlay the texture and then add the virtual object to the image
             overlayTexture(frame, corners, cameraMatrix, distCoeffsMat, rvec, tvec);
 
             addVirtualObjectToImage(object, frame, cameraMatrix, distCoeffsMat, rvec, tvec);
