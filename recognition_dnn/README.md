@@ -29,3 +29,8 @@ python train_digit_recognizer.py <output_file_path>
 ## Time Travel
 
 No time travel days will be used.
+
+## TODOS:
+
+- review task 1
+- do report stuff for task 1
