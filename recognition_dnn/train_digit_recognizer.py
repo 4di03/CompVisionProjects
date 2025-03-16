@@ -13,117 +13,9 @@ from torch import nn
 from torchvision import datasets
 import matplotlib.pyplot as plt
 from torchvision import transforms
-import dataclasses
+from visualize import visualize_loss
 from network import DigitDetectorNetwork
-N_EPOCHS = 5 # number of epochs to train the network
-IMAGE_SIZE = 28 # image size for MINIST DIGIT images
-BATCH_PLOT_INTERVAL = 50 # record train loss every {BATCH_PLOT_INTERVAL} samples
-
-
-@dataclasses.dataclass
-class PlotData:
-    """
-    Dataclass to store x and y values for plotting
-    """
-    x: List[float] # x values
-    y: List[float] # y values
-
-
-def get_total_avg_loss(network : DigitDetectorNetwork, dataloader : torch.utils.data.DataLoader, loss_function) -> float:
-    """
-    Computes the average loss on the entire dataset using the given network and data loader.
-
-    Args:
-        network: the network to use
-        dataloader: the data loader to use
-        loss_function: the loss function
-    Returns:
-        float: the loss on the entire dataset, averaged over all batches
-    """
-    total_batches = len(dataloader)
-
-    if total_batches == 0:
-        raise ValueError("Dataloader is empty")
-    total_loss = 0
-    network.eval()  # set network to evaluation mode
-
-    with torch.no_grad():
-        for test_images, test_labels in dataloader:
-            test_output = network(test_images)
-            total_loss += loss_function(test_output, test_labels).item()
-
-    return total_loss / total_batches   
-
-
-def train_network(network : DigitDetectorNetwork, train_dataloader : torch.utils.data.DataLoader, test_dataloader : torch.utils.data.DataLoader) -> None:
-    """
-    Trains the network using the training data and visualizes the loss and accuracy on the test data.
-    Args:
-        network: the network to train
-        train_dataloader: the data loader for the training data
-        test_dataloader: the data loader for the test data
-    Returns:
-        PlotData: the training loss data
-        PlotData: the test loss data
-
-    """
-
-    # Define negative log likelihood loss
-    loss_function = nn.NLLLoss()
-
-    # Define optimizer
-    optimizer = torch.optim.SGD(network.parameters(), lr=0.01, momentum=0.9)
-
-    train_losses = []
-    train_samples_seen = [] # epoch progress for each sample
-
-    test_losses = []
-    test_samples_seen = []  # epoch progress for each sample in test data
-
-
-    seen_so_far = 0 # keep track of the total number of training samples trained on so far (double counts for repeated epochs)
-
-
-
-    # record total average loss before training
-    train_losses.append(get_total_avg_loss(network, train_dataloader, loss_function))
-    train_samples_seen.append(seen_so_far)
-    test_losses.append(get_total_avg_loss(network, test_dataloader, loss_function))
-    test_samples_seen.append(seen_so_far)
-
-    
-    print("Begin training...")
-    # Train the network
-    for epoch_index in range(N_EPOCHS):  # 10 epochs
-        network.train()  # set network to training mode
-        for batch_index, (train_images, train_labels) in enumerate(train_dataloader):
-            seen_so_far += len(train_images)
-            optimizer.zero_grad()  # zero the gradients for safety
-
-
-            output = network(train_images)  # forward pass on training data
-
-            train_loss = loss_function(output, train_labels)  # calculate loss
-            train_loss.backward()  # backpropagation
-            optimizer.step()  # update weights
-
-
-            if batch_index % BATCH_PLOT_INTERVAL == 0:
-                # store the loss and epoch progress
-                train_losses.append(train_loss.item())
-                train_samples_seen.append(seen_so_far)
-        
-        # predict on test data after each epoch
-        test_losses.append(get_total_avg_loss(network, test_dataloader, loss_function))
-        test_samples_seen.append(seen_so_far)
-
-        print(f"Epoch {epoch_index + 1} completed.")
-
-
-
-    return PlotData(x=train_samples_seen, y=train_losses), PlotData(x=test_samples_seen, y=test_losses)
-
-                
+from network import train_network
 
 
 
@@ -171,19 +63,9 @@ def main(argv : List[str]) -> None:
     print(f"Network saved to {output_file_path}")
 
 
-
+    # plot the training and test loss
+    visualize_loss(train_loss_data, test_loss_data)
                 
-    # Plot training and test loss against epoch progress
-    plt.plot(train_loss_data.x, train_loss_data.y, label='Train Loss')
-
-    # plot test as scatter plot
-    plt.scatter(test_loss_data.x, test_loss_data.y, label='Test Loss', color='red')
-    plt.title('Training and Test Loss')
-
-    plt.xlabel('Number of Training Samples Seen')
-    plt.ylabel('Negative Log Likelihood Loss')
-    plt.legend()
-    plt.show()
 
 
     return

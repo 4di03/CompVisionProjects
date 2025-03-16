@@ -46,6 +46,12 @@ def process_images(images:List[cv2.Mat]) -> List[torch.Tensor]:
     processed_images = []
 
     for image in images:
+
+        # convert to grayscale
+        if len(image.shape) > 2:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+
         # Invert the colors
         image = cv2.bitwise_not(image)
 
@@ -66,7 +72,7 @@ def process_images(images:List[cv2.Mat]) -> List[torch.Tensor]:
     return processed_images
 
 
-def get_predictions(model:DigitDetectorNetwork, images:List[torch.Tensor]) -> List[int]:
+def get_predictions(model:torch.nn.Module, images:List[torch.Tensor]) -> List[int]:
     """
     Get predictions from the model
     Args:
@@ -75,8 +81,12 @@ def get_predictions(model:DigitDetectorNetwork, images:List[torch.Tensor]) -> Li
     Returns:
         List[int]: the predicted digits
     """
+    model.eval()
     predictions = []
-    batch = torch.stack(images) # put all images in a single batch, so we can process them all at once
+    if len(images[0].shape) != 3:
+        raise ValueError("Images should be 3D tensors")
+    
+    batch = torch.stack(images, dim = 0) # put all images in a single batch, so we can process them all at once
     predictions = model(batch)
     predictions = torch.argmax(predictions, dim=1).tolist()
     return predictions

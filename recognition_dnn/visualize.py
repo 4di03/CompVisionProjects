@@ -4,12 +4,37 @@ Mar 14 2025
 CS 5330 - Project 5 : Recognition using Deep Networks
 
 
-Functions to visualize the predictions made by the model
+Functions to visualize the predictions made by the model, as well as visaulizing network training loss.
 """
 
 from typing import List, Tuple
 import torch
 import matplotlib.pyplot as plt
+import dataclasses
+
+@dataclasses.dataclass
+class PlotData:
+    """
+    Dataclass to store x and y values for plotting
+    """
+    x: List[float] # x values
+    y: List[float] # y values
+
+def visualize_loss(train_loss_data : PlotData, test_loss_data : PlotData):
+    """
+    Plots the training and test loss data
+    Args:
+        train_loss_data: the training loss data
+        test_loss_data: the test loss data
+    Returns:
+        None
+    """
+    plt.plot(train_loss_data.x, train_loss_data.y, label='Train Loss')
+    plt.plot(test_loss_data.x, test_loss_data.y, label='Test Loss')
+    plt.xlabel('Training Samples Seen')
+    plt.ylabel('Negative Log Likelihood Loss')
+    plt.legend()
+    plt.show()
 
 def visualize_predictions(images: List[torch.Tensor], preds : List[int] = None, labels : List[int] = None, plot_shape : Tuple[int,int]=(2,5)):
     """
@@ -31,6 +56,9 @@ def visualize_predictions(images: List[torch.Tensor], preds : List[int] = None, 
 
     for i in range(num_images):
         row, col = divmod(i, plot_shape[1])  # Compute row and column indices
+        print(images[i].shape)
+
+
         axes[row, col].imshow(images[i].squeeze(), cmap='gray')
         pred_str = f"Pred: {preds[i]}," if preds is not None else ""
         label_str = f"Actual: {labels[i]}" if labels is not None else ""
