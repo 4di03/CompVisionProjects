@@ -1,0 +1,26 @@
+{
+    "model_params": {
+        "dropout_rate": [
+            0.3
+        ],
+        "pooling_kernel_size": [
+            2,
+            4
+        ],
+        "conv_kernel_size": [
+            5
+        ],
+        "num_conv_filters": [
+            10
+        ]
+    },
+    "training_params": {
+        "n_epochs": [
+            1,
+            3
+        ],
+        "batch_size": [
+            64
+        ]
+    }
+}

@@ -20,7 +20,16 @@ class PlotData:
     x: List[float] # x values
     y: List[float] # y values
 
-def visualize_loss(train_loss_data : PlotData, test_loss_data : PlotData):
+
+    def get_final_loss(self):
+        """
+        Returns the loss of the maximal x point
+        Args:
+            None
+        """
+        return self.y[self.x.index(max(self.x))]
+
+def visualize_loss(train_loss_data : PlotData = None, test_loss_data : PlotData = None):
     """
     Plots the training and test loss data
     Args:
@@ -29,8 +38,10 @@ def visualize_loss(train_loss_data : PlotData, test_loss_data : PlotData):
     Returns:
         None
     """
-    plt.plot(train_loss_data.x, train_loss_data.y, label='Train Loss')
-    plt.plot(test_loss_data.x, test_loss_data.y, label='Test Loss')
+    if train_loss_data is not None:
+        plt.plot(train_loss_data.x, train_loss_data.y, label='Train Loss')
+    if test_loss_data is not None:
+        plt.plot(test_loss_data.x, test_loss_data.y, label='Test Loss')
     plt.xlabel('Training Samples Seen')
     plt.ylabel('Negative Log Likelihood Loss')
     plt.legend()

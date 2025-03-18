@@ -35,10 +35,10 @@ def main(argv):
 
 
     # Find the min and max values across all filters for consistent color mapping
-    vmin = np.min([filters[i].squeeze().numpy() for i in range(10)])
-    vmax = np.max([filters[i].squeeze().numpy() for i in range(10)])
+    vmin = np.min([filters[i].squeeze().numpy() for i in range(len(filters))])
+    vmax = np.max([filters[i].squeeze().numpy() for i in range(len(filters))])
 
-    for i in range(10):
+    for i in range(len(filters)):
         row, col = divmod(i, 4)
         img = axes[row, col].imshow(filters[i].squeeze(), cmap='coolwarm', vmin=vmin, vmax=vmax)
         axes[row, col].set_xticks([])  # Remove x-axis ticks
@@ -47,7 +47,7 @@ def main(argv):
         axes[row, col].axis('off')  # Alternatively, turn off the entire axis
 
     # Hide unused subplots (for cases where you have fewer than 12 filters)
-    for j in range(10, 12):
+    for j in range(len(filters), 12):
         row, col = divmod(j, 4)
         axes[row, col].axis('off')
 
@@ -67,12 +67,12 @@ def main(argv):
     # apply a filter with opencv filter2D
     img = img.numpy().squeeze()
     filtered_imgs = []
-    for i in range(10):
+    for i in range(len(filters)):
         filtered_img = cv2.filter2D(img, -1, filters[i].squeeze().numpy())
         filtered_imgs.append(filtered_img)
     
     fig, axes = plt.subplots(5,4, figsize=(8, 8))
-    for i in range(0,20,2):
+    for i in range(0,len(filters)*2,2):
         row, col = divmod(i, 4)
         print(row, col)
         axes[row, col].imshow(filters[i//2].squeeze(), cmap='gray')

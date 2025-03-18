@@ -15,9 +15,8 @@ import matplotlib.pyplot as plt
 from torchvision import transforms
 from visualize import visualize_loss
 from network import DigitDetectorNetwork
-from network import train_network
 
-
+from train import train_on_dataset, TrainingParams
 
             
 
@@ -46,17 +45,14 @@ def main(argv : List[str]) -> None:
     print("Data downloaded.")
 
 
-    # create data loaders for mini-batch training
-    batch_size = 64
-    train_dataloader = torch.utils.data.DataLoader(training_data, batch_size=batch_size)
-    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=batch_size)
-
-
     # create the network
     network = DigitDetectorNetwork()
 
     # train the network in-place using the training data, visualizing the loss and accuracy on the test data as well
-    train_loss_data, test_loss_data = train_network(network, train_dataloader, test_dataloader)
+    train_loss_data, test_loss_data = train_on_dataset(training_data, 
+                                                       test_data, 
+                                                       network, 
+                                                       TrainingParams(n_epochs=5, batch_size=64))
 
     # save the network to the specified file
     torch.save(network.state_dict(), output_file_path)

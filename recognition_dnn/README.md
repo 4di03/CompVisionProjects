@@ -23,7 +23,7 @@ The python files can then be run as follows:
 python visualize_data.py
 
 # Task 1B
-# visualizes the network architecture
+# visualizes the network architecture, saving it to `network_diagram.png`
 python visualize_network.py
 
 # Task 1C
@@ -35,7 +35,7 @@ python train_digit_recognizer.py <output_file_path>
 python run_digit_recognizer.py <model_file_path>
 
 # Task 1F
-# runs the network on a directory of handwritten digits 
+# runs the network on a directory of handwritten digits , showing an example of the processed digits and then the network's prediciton on them
 python run_on_handwritten_digits.py <image_directory_path> <model_file_path>
 
 
@@ -53,12 +53,18 @@ python transfer_learning_greek.py <model_file_path> <training_data_directory> <t
 
 
 # Task 4
-
+# runs hyperparameter tuning using a json input file to find the model that performs the best in terms of performance with the least samples seen (on test data)
+# runs on the MNIST digit dataset
+python find_best_model.py <parameters_json_file> <output_file_path>
 
 ```
 
 For task 3, I've included a folder `handwritten_greek.zip` which
 I used as the `test_data_directory` when evaluating my transfer learning model. 
+
+For task 4, the parameter's I used for the randomized grid search
+in my experiment are given in `training_parameters.json`. This file
+can be used as the {parameters_json_file} argument for `find_best_model.py`
 
 ### Demo
 
