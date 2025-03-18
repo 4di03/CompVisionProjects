@@ -32,12 +32,12 @@ python train_digit_recognizer.py <output_file_path>
 
 # Task 1E
 # runs the network on the first 10 examples in the MNIST test set
+# note that this only works with models of the default architecture (the one created in train_digit_recognizer.py)
 python run_digit_recognizer.py <model_file_path>
 
-# Task 1F
-# runs the network on a directory of handwritten digits , showing an example of the processed digits and then the network's prediciton on them
+# Task 1F 
+# run the network on a directory of handwritten digits , showing an example of the processed digits and then the network's prediciton on them
 python run_on_handwritten_digits.py <image_directory_path> <model_file_path>
-
 
 
 # Task 2A + 2B
@@ -57,6 +57,12 @@ python transfer_learning_greek.py <model_file_path> <training_data_directory> <t
 # runs on the MNIST digit dataset
 python find_best_model.py <parameters_json_file> <output_file_path>
 
+# Extension
+# tunes a digit detector model specified by {model_file_path} with hand  gesture images
+# and runs predictions on them. The hand gesture images should be in {image_directory_path}
+python detect_hand_gestures.py <image_directory_path> <model_file_path>
+
+
 ```
 
 For task 3, I've included a folder `handwritten_greek.zip` which
@@ -66,10 +72,9 @@ For task 4, the parameter's I used for the randomized grid search
 in my experiment are given in `training_parameters.json`. This file
 can be used as the {parameters_json_file} argument for `find_best_model.py`
 
-### Demo
-
-
-## Testing Extension
+For the extensions, I've included a folder `hand_gestures_train.zip` which I used 
+as the {training_data_directory} and a folder `hand_gestures_test.zip` which I used
+as the {test_data_directory}
 
 
 ## Time Travel
@@ -78,5 +83,6 @@ No time travel days will be used.
 
 ## TODOS:
 
-- review task 1
-- do report stuff for task 1
+- finish exnteiosn (overview, reflection)
+- review code, project doc, report
+- submit 

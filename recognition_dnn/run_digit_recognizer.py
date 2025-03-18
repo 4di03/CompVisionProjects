@@ -4,6 +4,7 @@ Mar 14 2025
 CS 5330 - Project 5 : Recognition using Deep Networks
 
 This file reads a digit recognizer model from a file and runs it on the MNIST test set
+Note that this only works with the default DigitDetectorNetwork architecture
 """
 from network import DigitDetectorNetwork
 import sys

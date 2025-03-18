@@ -99,7 +99,7 @@ def get_best_model(training_times : List[float], losses : List[float], models : 
     scores = [l + t for l, t in zip(norm_losses, norm_times)]
     # finds the smallest joint sum
     best_index = scores.index(min(scores))
-    return models[best_index], training_times[best_index], losses[best_index]
+    return models[best_index], losses[best_index], training_times[best_index]
 
 def main(argv):
     """
