@@ -83,6 +83,8 @@ No time travel days will be used.
 
 ## TODOS:
 
-- finish exnteiosn (overview, reflection)
+- finish exnteiosn
+- finsih report (overview, reflection)
 - review code, project doc, report
+- final project proposal
 - submit 

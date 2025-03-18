@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
 import torchvision
 import torch
-from network import DigitDetectorNetwork, train_network
+from network import DigitDetectorNetwork
 from visualize import visualize_loss, visualize_predictions
 from run_on_handwritten_digits import get_predictions
-
+from train import train_network
+import matplotlib.pyplot as plt
 IMAGE_SIZE = 128
 
 # Neural Network for recognizing Greek characters
@@ -45,37 +46,13 @@ class Transform(ABC):
         Returns:
             the preprocessed image (torch.Tensor)
         """
-# greek data set transform
-class GreekTransform(Transform):
 
-    def __init__(self, original_image_size = 128, shrink_target = 36):
-        """
-        Initializes the GreekTransform with the original image size
-        Args:
-            original_image_size: the size of the original image ( assumed to be square )
-            shrink_target: the size to shrink the image to before applying a 28x28 center crop
-        """
-        self.original_image_size = original_image_size
-        self.shrink_target = shrink_target
-    def __call__(self, x):
-        """
-        Preprocesses the image to be compatible with the digit model
-        Converts the image to grayscale, resizes it to 28x28, and inverts the colors
-        Args:
-            x: the image to preprocess
-        Returns:
-            the preprocessed image
-        """
-        x = torchvision.transforms.functional.rgb_to_grayscale( x )
-        x = torchvision.transforms.functional.affine( x, 0, (0,0), self.shrink_target/self.original_image_size, 0 )
-        x = torchvision.transforms.functional.center_crop( x, (28, 28) )
-        return torchvision.transforms.functional.invert( x )
     
 
 
 
 def get_dataloader_from_image_folder(directory, 
-                                     greek_transform : GreekTransform,
+                                     transform : Transform,
                                      batch_size = 1):
     """
     Gets a DataLoader from an image folder, which has the following directory structure:
@@ -98,14 +75,15 @@ def get_dataloader_from_image_folder(directory,
 
     return torch.utils.data.DataLoader(
         torchvision.datasets.ImageFolder( directory,
-                                          transform = torchvision.transforms.Compose( [torchvision.transforms.ToTensor(),
-                                                                                       greek_transform,
-                                                                                       torchvision.transforms.Normalize(
-                                                                                           (0.1307,), (0.3081,) ) ] ) ),
+                                          transform = transform),
         batch_size = batch_size,
         shuffle = True )
 
-def run_transfer_learning(model_file_path : str, training_data_directory : str, test_data_directory : str, n_classes : int = 3):
+def run_transfer_learning(model_file_path : str, 
+                          training_data_directory : str, 
+                          test_data_directory : str, 
+                          transform : Transform,
+                          n_classes : int = 3):
     """
     Uses transfer learning on a model that was pre-trained to recognize digits to recognized n_classes from the images in the training_data_directory and test_data_directory
     Args:
@@ -125,8 +103,8 @@ def run_transfer_learning(model_file_path : str, training_data_directory : str, 
             │   └── ...
             └── ...
 
-
-        n_classes: the number of classes to recognize
+        transform: the transform to apply to the images before training and prediction
+        n_classes: the number of classes to recognize   
     Returns:
         None
     """
@@ -141,9 +119,24 @@ def run_transfer_learning(model_file_path : str, training_data_directory : str, 
 
 
     # DataLoader for the Greek data set
-    greek_train = get_dataloader_from_image_folder(training_data_directory, GreekTransform(original_image_size=IMAGE_SIZE, shrink_target = 28), 5)
+    greek_train = get_dataloader_from_image_folder(training_data_directory,transform , 3)
 
-    greek_test = get_dataloader_from_image_folder(test_data_directory,GreekTransform(original_image_size=IMAGE_SIZE, shrink_target = 28), 1)
+    greek_test = get_dataloader_from_image_folder(test_data_directory,transform, 1)
+
+    # visualize some of the train images
+    img_batch, label_batch = next(iter(greek_train))
+    img = img_batch[0]
+    label = label_batch[0]
+
+    print("L134", torch.max(img), torch.min(img))
+
+
+
+    plt.imshow(img.squeeze().numpy(), cmap='gray')
+    plt.title(f"Label: {label}")
+    plt.show()
+        
+
 
 
     train_loss, test_loss = train_network(model, greek_train, greek_test, n_epochs = 5)

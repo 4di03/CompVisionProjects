@@ -7,44 +7,12 @@ This file uses transfer learning on a model that was pre-trained to recognize di
 It prints out the architectuer of the model, plots the training error, and tests the model on a directory of handwritten Greek characters.
 """
 import sys
-from network import DigitDetectorNetwork
-import torch
-import torchvision
-from network import train_network
-from visualize import visualize_loss, visualize_predictions
-from run_on_handwritten_digits import get_predictions
+from transfer_learning import run_transfer_learning, Transform , IMAGE_SIZE
+import torchvision 
 
-IMAGE_SIZE = 128  
-
-# Neural Network for recognizing Greek characters
-class GreekDetectorNetwork(torch.nn.Module):
-
-
-    def __init__(self, digit_model: DigitDetectorNetwork):
-        """
-        Initializes the GreekDetectorNetwork with the given digit model,
-        by replacing the last layer of the digit model to recognize 3 classes.
-        Warning: the digit model will be modified in-place.
-        Args:
-            digit_model: the model that was pre-trained to recognize digits
-        """
-        super(GreekDetectorNetwork, self).__init__()
-        # freeze the weights of the digit model that are already trained, so they are not updated during training
-        for param in digit_model.parameters():
-            param.requires_grad = False
-
-        # Replace the last layer of the digit model to recognize 3 classes
-        digit_model.fc2 = torch.nn.Linear(50, 3)
-        digit_model.compile_network() # recompile the network after changing the last layer
-
-        self.net = digit_model
-    
-
-    def forward(self, x):
-        return self.net(x)
 
 # greek data set transform
-class GreekTransform:
+class GreekTransform(Transform):
 
     def __init__(self, original_image_size = 128, shrink_target = 36):
         """
@@ -68,38 +36,7 @@ class GreekTransform:
         x = torchvision.transforms.functional.affine( x, 0, (0,0), self.shrink_target/self.original_image_size, 0 )
         x = torchvision.transforms.functional.center_crop( x, (28, 28) )
         return torchvision.transforms.functional.invert( x )
-
-def get_dataloader_from_image_folder(directory, 
-                                     greek_transform : GreekTransform,
-                                     batch_size = 1):
-    """
-    Gets a DataLoader from an image folder, which has the following directory structure:
-    directory
-    ├── class1
-    │   ├── img1.png
-    │   ├── img2.png
-    │   └── ...
-    ├── class2
-    │   ├── img1.png
-    │   ├── img2.png
-    │   └── ...
-    └── ...
-    Args:
-        directory: the directory containing the images
-        batch_size: the batch size for the DataLoader
-    Returns:
-        DataLoader: the DataLoader for the images in the directory
-    """
-
-    return torch.utils.data.DataLoader(
-        torchvision.datasets.ImageFolder( directory,
-                                          transform = torchvision.transforms.Compose( [torchvision.transforms.ToTensor(),
-                                                                                       greek_transform,
-                                                                                       torchvision.transforms.Normalize(
-                                                                                           (0.1307,), (0.3081,) ) ] ) ),
-        batch_size = batch_size,
-        shuffle = True )
-
+    
 def main(argv):
     """
     Uses transfer learning on a model that was pre-trained to recognize digits to recognize Greek characters alpha, beta, and gamma.
@@ -115,42 +52,16 @@ def main(argv):
     model_file_path = argv[1]
     training_data_directory = argv[2]
     test_data_directory = argv[3]
-
-    model = DigitDetectorNetwork()
-    model.load_state_dict(torch.load(model_file_path))
-
-    greek_model = GreekDetectorNetwork(model) # transfer learning by replacing the last layer of the digit model to recognize 3 classes
-
-    # print the architecture of the model
-    print("Greek Detector Network Architecture:")
-    print(greek_model)
-
-
-    # DataLoader for the Greek data set
-    # handwritten images should be 128x128, and we want to use the only the center 28x28 block out of the 36x36 shrinked image
-    greek_train = get_dataloader_from_image_folder(training_data_directory, GreekTransform(original_image_size=IMAGE_SIZE, shrink_target = 36), 5)
-
-    # handwritten images should be 320x320, and we want to use the entire image in the crop to 28x28
-    greek_test = get_dataloader_from_image_folder(test_data_directory,GreekTransform(original_image_size=IMAGE_SIZE, shrink_target = 28), 1)
-
-
-    train_loss, test_loss = train_network(model, greek_train, greek_test, n_epochs = 5)
-
-    visualize_loss(train_loss, test_loss)
-    
-
-    # Get predictions on the test data
-
-    test_images = []
-    test_labels = []
-    for img, label in greek_test:
-        # img will have shape [1,1,28,28], we want to remove the batch dimension and convert it to [1,28,28]
-        test_images.append(img.squeeze().unsqueeze(0))
-        test_labels.append(label.item())
-
-    predictions = get_predictions(greek_model, test_images)
-
-    visualize_predictions(test_images, predictions,test_labels, (3,3))
+    greek_transform = GreekTransform(original_image_size=IMAGE_SIZE, shrink_target = 28)
+    transform = torchvision.transforms.Compose( [torchvision.transforms.ToTensor(),
+                                                                                       greek_transform,
+                                                                                       torchvision.transforms.Normalize(
+                                                                                           (0.1307,), (0.3081,) ) ] )
+    run_transfer_learning(model_file_path, 
+                          training_data_directory, 
+                          test_data_directory, 
+                          transform,
+                          n_classes = 3)
 
 
 if __name__ == "__main__":
