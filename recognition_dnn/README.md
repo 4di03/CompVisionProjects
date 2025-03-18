@@ -58,9 +58,10 @@ python transfer_learning_greek.py <model_file_path> <training_data_directory> <t
 python find_best_model.py <parameters_json_file> <output_file_path>
 
 # Extension
-# tunes a digit detector model specified by {model_file_path} with hand  gesture images
-# and runs predictions on them. The hand gesture images should be in {image_directory_path}
-python detect_hand_gestures.py <image_directory_path> <model_file_path>
+# tunes a digit detector model specified by {model_file_path} with hand gesture images found in the training directory
+# and runs predictions on them using images in the test directory
+python detect_hand_gestures.py <model_file_path> <training_data_directory> <test_data_directory>
+
 
 
 ```

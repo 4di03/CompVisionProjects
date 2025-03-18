@@ -41,7 +41,7 @@ def visualize_loss(train_loss_data : PlotData = None, test_loss_data : PlotData 
     if train_loss_data is not None:
         plt.plot(train_loss_data.x, train_loss_data.y, label='Train Loss')
     if test_loss_data is not None:
-        plt.plot(test_loss_data.x, test_loss_data.y, label='Test Loss')
+        plt.scatter(test_loss_data.x, test_loss_data.y, label='Test Loss', color='red')
     plt.xlabel('Training Samples Seen')
     plt.ylabel('Negative Log Likelihood Loss')
     plt.legend()
