@@ -67,7 +67,6 @@ def visualize_predictions(images: List[torch.Tensor], preds : List[int] = None, 
 
     for i in range(num_images):
         row, col = divmod(i, plot_shape[1])  # Compute row and column indices
-        print(images[i].shape)
 
 
         axes[row, col].imshow(images[i].squeeze(), cmap='gray')

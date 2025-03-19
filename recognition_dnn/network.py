@@ -3,37 +3,12 @@ Adithya Palle
 Mar 14 2025
 CS 5330 - Project 5 : Recognition using Deep Networks
 
-This file defines the neural network for the digit recognition task, as well as training and testing functions.
+This file defines the neural network for the digit recognition task, as well as the modeling parameters dataclass for the network.
 """
 from torch import nn
 import torch
 import dataclasses
 
-
-def get_total_avg_loss(network : nn.Module, dataloader : torch.utils.data.DataLoader, loss_function) -> float:
-    """
-    Computes the average loss on the entire dataset using the given network and data loader.
-
-    Args:
-        network: the network to use
-        dataloader: the data loader to use
-        loss_function: the loss function
-    Returns:
-        float: the loss on the entire dataset, averaged over all batches
-    """
-    total_batches = len(dataloader)
-
-    if total_batches == 0:
-        raise ValueError("Dataloader is empty")
-    total_loss = 0
-    network.eval()  # set network to evaluation mode
-
-    with torch.no_grad():
-        for test_images, test_labels in dataloader:
-            test_output = network(test_images)
-            total_loss += loss_function(test_output, test_labels).item()
-
-    return total_loss / total_batches   
 
 @dataclasses.dataclass
 class ModelingParameters:

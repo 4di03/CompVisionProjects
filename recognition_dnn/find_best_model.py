@@ -4,7 +4,7 @@ Mar 17 2025
 CS 5330 - Project 5 : Recognition using Deep Networks
 
 This file takes in a json file with parameters and an output file path and runs hyperparameter tuning on the model to find the
-best model based on loss and training time
+best model based on loss and training time. The best model is saved to the output file path
 """
 import random
 import sys

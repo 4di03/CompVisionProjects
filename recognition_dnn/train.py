@@ -3,18 +3,43 @@ Adithya Palle
 Mar 14 2025
 CS 5330 - Project 5 : Recognition using Deep Networks
 
-This file the function for the entire training pipeline on the MNIST digit dataset, including training and evaluation.
+This file stores functions for the entire training pipeline for the image classificiation CNNs, including training and evaluation.
 """
 import torch.utils.data as data
 import torch
 from typing import Tuple
 import dataclasses
 from visualize import PlotData
-from network import get_total_avg_loss
 N_EPOCHS = 5 # number of epochs to train the network
 BATCH_PLOT_INTERVAL = 50 # record train loss every {BATCH_PLOT_INTERVAL} samples
 
 
+
+
+def get_total_avg_loss(network : torch.nn.Module, dataloader : torch.utils.data.DataLoader, loss_function) -> float:
+    """
+    Computes the average loss on the entire dataset using the given network and data loader.
+
+    Args:
+        network: the network to use
+        dataloader: the data loader to use
+        loss_function: the loss function
+    Returns:
+        float: the loss on the entire dataset, averaged over all batches
+    """
+    total_batches = len(dataloader)
+
+    if total_batches == 0:
+        raise ValueError("Dataloader is empty")
+    total_loss = 0
+    network.eval()  # set network to evaluation mode
+
+    with torch.no_grad():
+        for test_images, test_labels in dataloader:
+            test_output = network(test_images)
+            total_loss += loss_function(test_output, test_labels).item()
+
+    return total_loss / total_batches   
 @dataclasses.dataclass
 class TrainingParams:
     """

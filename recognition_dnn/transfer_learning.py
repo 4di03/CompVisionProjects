@@ -1,3 +1,11 @@
+"""
+Adithya Palle
+Mar 18 2025
+CS 5330 - Project 5 : Recognition using Deep Networks
+
+This file contains the core functioanlity needed for defining transfer learning networks,
+as well as running transfer learning on generic datasets.
+"""
 from abc import ABC, abstractmethod
 import torchvision
 import torch
@@ -35,7 +43,8 @@ class GenericDetector(torch.nn.Module):
 
     def forward(self, x):
         return self.net(x)
-    
+
+# data transformation interface
 class Transform(ABC):
     @abstractmethod
     def __call__(self, x):
@@ -128,7 +137,6 @@ def run_transfer_learning(model_file_path : str,
     img = img_batch[0]
     label = label_batch[0]
 
-    print("L134", torch.max(img), torch.min(img))
 
 
 

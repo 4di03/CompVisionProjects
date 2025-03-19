@@ -78,14 +78,12 @@ as the {training_data_directory} and a folder `hand_gestures_test.zip` which I u
 as the {test_data_directory}
 
 
+Note that some files (particularly those that show visualizations)
+will not exit unless you explicilitly close them such as with Ctrl + C.
+This is intentional to allow the visualizations to remain indefinitely.
+
+
 ## Time Travel
 
 No time travel days will be used.
 
-## TODOS:
-
-- finish exnteiosn
-- finsih report (overview, reflection)
-- review code, project doc, report
-- final project proposal
-- submit 

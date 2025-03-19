@@ -74,7 +74,6 @@ def main(argv):
     fig, axes = plt.subplots(5,4, figsize=(8, 8))
     for i in range(0,len(filters)*2,2):
         row, col = divmod(i, 4)
-        print(row, col)
         axes[row, col].imshow(filters[i//2].squeeze(), cmap='gray')
         axes[row, col].axis('off')
         axes[row, col+1].imshow(filtered_imgs[i//2], cmap='gray')

@@ -11,9 +11,6 @@ from transfer_learning import run_transfer_learning, Transform , IMAGE_SIZE
 import torchvision 
 import torch
 
-# RGB_LOWER_BOUND = torch.tensor([0/255, 85/255, 31/255])
-# RGB_UPPER_BOUND = torch.tensor([255/255, 120/255, 255/255])
-
 RGB_LOWER_BOUND = torch.tensor([0/255, 80/255, 31/255])
 RGB_UPPER_BOUND = torch.tensor([255/255, 150/255, 255/255])
 # greek data set transform
@@ -32,21 +29,16 @@ class HandGestureTransform(Transform):
         """
         x = torchvision.transforms.functional.affine( x, 0, (0,0), 28/IMAGE_SIZE, 0 )
         x = torchvision.transforms.functional.center_crop( x, (28, 28) )
-        print(x.shape)
-        # print fisrt pixel wvlaues:
-        print(x[:,0,0])
 
         # set values between (0, 85, 31) and (255, 120, 255) as white, everything else as black
         mask = ((x >= RGB_LOWER_BOUND.view(3, 1, 1)) & 
                 (x <= RGB_UPPER_BOUND.view(3, 1, 1)))
         
-        print(mask[:,0,0])
         
         x = torch.where(mask.all(dim=0), 
                         torch.tensor(1.0, dtype=x.dtype, device=x.device), 
                         torch.tensor(0.0, dtype=x.dtype, device=x.device))
 
-        print(x[0,0])
         return x.unsqueeze(0)  # add a batch dimension
 
     
